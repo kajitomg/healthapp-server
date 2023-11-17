@@ -1,19 +1,20 @@
+import {ApiError} from "../exceptions/api-error";
 import {tokenService} from "../services/token";
 
 module.exports = (req, res, next) => {
   try {
-    const authorizationHeader = req.headers.authorization
-    if(!authorizationHeader) throw new Error(`Пользователь не авторизован`)
+    let accessToken = req.headers.authorization
+    if (accessToken.split(' ')[1])
+      accessToken = accessToken.split(' ')[1]
     
-    const accessToken = authorizationHeader.split(' ')[1]
-    if(!accessToken) throw new Error(`Пользователь не авторизован`)
+    if (!accessToken) throw ApiError.UnauthorizedError()
     
     const userData = tokenService.validateAccessToken(accessToken)
-    if(!userData) throw new Error(`Пользователь не авторизован`)
+    if (!userData) throw ApiError.UnauthorizedError()
     
     req.user = userData
     next()
-  } catch (e){
-    throw new Error(`Пользователь не авторизован`)
+  } catch (e) {
+    throw ApiError.BadRequest(`Пользователь не авторизован`)
   }
 }

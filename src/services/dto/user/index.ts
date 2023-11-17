@@ -3,6 +3,7 @@ class userDTO {
   public name
   public email
   public roleId
+  
   constructor(user) {
     this.id = user.id
     this.name = user.name

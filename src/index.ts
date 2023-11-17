@@ -1,18 +1,24 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
-const { DBService } = require('./services/db');
+const {DBService} = require('./services/db');
 const cookieParser = require('cookie-parser')
-const { models } = require('./models')
+const {models} = require('./models')
 const router = require('./routes')
 const errorMiddleware = require('./middlewares/error-middleware')
+const accessMiddleWare = require('./middlewares/access-middleware')
+const authMiddleWare = require('./middlewares/auth-middleware')
+const bodyParser = require('body-parser')
 
 const app = express()
 
 app.use(cors({
 	credentials: true,
-	origin: process.env.CLIENT_URL
+	origin: process.env.CLIENT_URL,
 }))
+app.use(express.static('uploads'));
+app.use(bodyParser())
+app.use(express.urlencoded({extended: true}));
 app.use(express.json())
 app.use(cookieParser())
 app.use('/api', router)

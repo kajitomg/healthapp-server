@@ -1,7 +1,6 @@
-
 class ApiError extends Error {
-  public status:string
-  public errors:string[]
+  public status: string
+  public errors: string[]
   
   constructor(status, message, errors = []) {
     super(message);
