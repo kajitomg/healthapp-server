@@ -15,6 +15,6 @@ module.exports = (req, res, next) => {
     req.user = userData
     next()
   } catch (e) {
-    throw ApiError.BadRequest(`Пользователь не авторизован`)
+    throw ApiError.UnauthorizedError()
   }
 }

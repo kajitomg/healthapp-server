@@ -1,41 +1,88 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
 import {valueModel} from "../../models";
-import {ValueI} from "../../models/product/value-model";
+import {IValue} from "../../models/product/value-model";
+import queriesNormalize from "../../helpers/queries-normalize";
+import createSlice from "../../helpers/create-slice";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class valueService {
   
-  static async create(data: { value?: string, basic?: boolean }, options?: TransactionOptionsType): Promise<ValueI> {
+  static create = createSlice<{
+    item:IValue,
+    count:number
+  },Pick<IValue, 'value' | 'basic'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
     
     const result = await valueModel.create(data, {transaction: transaction.data})
+    const {count} = await this.count({queries, options:{transaction}})
     
-    if (!result) {
+    if (!result || !count) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании значения`)
     }
+    return {
+      item:result,
+      count
+    }
     
-    return result
-    
-  }
+  })
   
-  static async get(data: { id?: number, value?: string }, options?: TransactionOptionsType): Promise<ValueI[]> {
+  static get = createSlice<{
+    item:IValue
+  },Pick<IValue, 'id' | 'value'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const result = await valueModel.findAll({where: data, transaction: transaction.data})
+    const result = await valueModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении значения`)
     }
     
-    return result
+    return {
+      item:result
+    }
     
-  }
+  })
   
-  static async update(data: { id: number, value?: string }, options?: TransactionOptionsType): Promise<ValueI> {
+  static gets = createSlice<{
+    list: IValue[],
+    count: number
+  }>(async ({queries, options}) => {
+    const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
+    
+    const values = await valueModel.findAll({
+      where: {
+        ...normalizeQueries.searched
+      },
+      raw: true,
+      offset: normalizeQueries.offset,
+      limit: normalizeQueries.limit,
+      order: normalizeQueries.order,
+      transaction: transaction.data
+    })
+    
+    
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    const result = {
+      list:values,
+      count
+    }
+    if (!result) {
+      await t.rollback(transaction.data)
+      throw ApiError.BadRequest(`Ошибка при получении знаечний`)
+    }
+    
+    return result
+  })
+  
+  static update = createSlice<{
+    item:IValue
+  },Pick<IValue, 'id' | 'value'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await valueModel.update(data, {where: {id: data.id}, transaction: transaction.data})
@@ -45,31 +92,61 @@ class valueService {
       throw ApiError.BadRequest(`Ошибка при обновлении значения`)
     }
     
-    return result
-    
-  }
-  
-  static async destroy(data?: { id: number }, options?: TransactionOptionsType): Promise<number> {
-    const transaction = options?.transaction
-    
-    const result = await valueModel.destroy({where: data, transaction: transaction.data})
-    
-    if (!result) {
-      await t.rollback(transaction.data)
-      throw ApiError.BadRequest(`Ошибка при обновлении значения`)
+    return {
+      item:result
     }
     
-    return 1
-    
-  }
+  })
   
-  static async destroys(data?: any[], options?: TransactionOptionsType): Promise<number> {
+  static destroy = createSlice<{
+    count:number
+  },Pick<IValue, 'id'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
     
-    await valueModel.destroy({where: {id: data.map((value) => value.dataValues.id)}, transaction: transaction.data})
+    const result = await valueModel.destroy({where: {id:data.id}, transaction: transaction.data})
     
-    return 1
-  }
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    if (!count) {
+      await t.rollback(transaction.data)
+      throw ApiError.BadRequest(`Ошибка при удалении значения`)
+    }
+    
+    return {count}
+    
+  })
+  
+  static destroys = createSlice<{
+    count:number
+  },{items:IValue[]}>(async ({data, queries, options}) => {
+    const transaction = options?.transaction
+    
+    await valueModel.destroy({where: {id: data.items.map((value) => value.dataValues.id)}, transaction: transaction.data})
+    
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    return {
+      count
+    }
+  })
+  
+  static count = createSlice<{ count: number }>(async ({queries, options}) => {
+    const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
+    
+    const count = await valueModel.count({
+      where: {
+        ...normalizeQueries.searched
+      },
+      raw: true,
+      transaction: transaction.data,
+      order: normalizeQueries.order
+    })
+    
+    return {
+      count
+    }
+  })
   
 }
 

@@ -5,14 +5,14 @@ const {DataTypes} = require('sequelize')
 
 const sequelize = DBService.postgres.sequelize
 
-interface ProductCategoryI extends Model<InferAttributes<ProductCategoryI>, InferCreationAttributes<ProductCategoryI>> {
+interface IProductCategory extends Model<InferAttributes<IProductCategory>, InferCreationAttributes<IProductCategory>> {
   id: CreationOptional<number>;
   productId: CreationOptional<number>;
   categoryId: CreationOptional<number>;
 }
 
-const productCategoryModel: ProductCategoryI = sequelize.define('product-category', {
+const productCategoryModel: IProductCategory = sequelize.define('product-category', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
 })
 
-export {productCategoryModel, ProductCategoryI}
+export {productCategoryModel, IProductCategory}

@@ -3,7 +3,6 @@ import {DBService} from "../services/db"
 
 const sequelize = DBService.postgres.sequelize
 
-export type TransactionOptionsType = { transaction: TransactionSuccessCreateType }
 export type TransactionErrorType = { status: false, error: any }
 export type TransactionSuccessCreateType = { status: true, data: Transaction }
 export type TransactionSuccessCommitType = { status: true }
@@ -42,7 +41,6 @@ const commit = async (transaction): Promise<CommitType> => {
       status: true
     })
   } catch (error) {
-    await rollback(transaction)
     return Promise.reject({
       status: false,
       error
@@ -55,7 +53,7 @@ const rollback = async (transaction): Promise<RollbackType> => {
     await transaction.rollback()
   } catch (error) {
     return Promise.reject({
-      status: false,
+      status: error.status,
       error
     })
   }

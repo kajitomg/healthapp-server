@@ -1,47 +1,49 @@
-import mailService from "../mail";
+ import mailService from "../mail";
 import {authDataModel} from "../../models";
 import {userService} from "../user";
-import {AuthDataI} from "../../models/user/auth-data-model";
+import {IAuthData} from "../../models/user/auth-data-model";
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
+ import createSlice from "../../helpers/create-slice";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class authDataService {
   
-  static async create(userId: number, options?: TransactionOptionsType): Promise<AuthDataI> {
+  static create = createSlice<{
+    item:IAuthData
+  },{userId: number}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const user = await userService.getOneById(userId, {transaction})
-    const mailAuth = await mailService.create({transaction})
+    const user = await userService.getOneById({data:{id:data.userId}, options:{transaction}})
+    const mailAuth = await mailService.create({options:{transaction}})
+
+    await mailService.sendActivationLink({data:{to:user.item.email, url:`${process.env.API_URL}/api/user/activate/${mailAuth.item.url}`}, options:{transaction}})
     
-    await mailService.sendActivationLink(user.email, `${process.env.API_URL}/api/user/activate/${mailAuth.url}`, {transaction})
-    
-    const authdata = await authDataModel.create({userId, mailAuthId: mailAuth.id}, {transaction: transaction.data})
+    const authdata = await authDataModel.create({userId:data.userId, mailAuthId: mailAuth.item.id}, {transaction: transaction.data})
     if (!authdata) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
     return authdata
     
-  }
+  })
   
-  static async destroy(userId: number, options?: TransactionOptionsType): Promise<number> {
+  static destroy = createSlice<number,{userId: number}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    let authdata = await authDataModel.findOne({where: {userId}, transaction: transaction.data})
+    let authdata = await authDataModel.findOne({where: data, transaction: transaction.data})
     
-    const mailAuth = await mailService.destroy(authdata.mailAuthId, {transaction})
-    authdata = await authDataModel.destroy({where: {userId}, transaction: transaction.data})
+    const mailAuth = await mailService.destroy({data:{id:authdata.mailAuthId}, options:{transaction}})
+    authdata = await authDataModel.destroy({where: data, transaction: transaction.data})
     
     if (!authdata && !mailAuth) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении пользователя`)
     }
     
-    return 1
-    
-  }
+    return mailAuth
+  })
   
 }
 

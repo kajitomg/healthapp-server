@@ -1,17 +1,21 @@
 import {ApiError} from "../exceptions/api-error";
 import {specificationService} from "../services/specification";
 import controllerWrapper from "../helpers/controller-wrapper";
+import {NextFunction, Request, Response} from "express";
+import {createDTO} from "../helpers/create-dto";
+import {ISpecification} from "../models/product/specification-model";
 
 
 class specificationController {
   
-  static async create(req, res, next) {
+  static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<ISpecification, keyof Pick<ISpecification, 'typeId' | 'basic' | 'name' | 'categoryId'>>(req.body,['typeId', 'categoryId', 'basic', 'name'])
+      const queries = req.query
       
       const specification = await controllerWrapper(
         async (transaction) => {
-          return await specificationService.create(data, {transaction})
+          return await specificationService.create({data:props, queries,options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при создании характеристики`, error)
       )
@@ -22,13 +26,13 @@ class specificationController {
     }
   }
   
-  static async gets(req, res, next) {
+  static async gets(req: Request, res: Response, next: NextFunction) {
     try {
       const queries = req.query
       
       const specification = await controllerWrapper(
         async (transaction) => {
-          return await specificationService.gets(queries, {transaction})
+          return await specificationService.gets({queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении характеристик`, error)
       )
@@ -39,13 +43,13 @@ class specificationController {
     }
   }
   
-  static async update(req, res, next) {
+  static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<ISpecification, keyof Pick<ISpecification, 'typeId' | 'basic' | 'name' | 'categoryId'>>(req.body,['typeId', 'categoryId', 'basic', 'name'])
       
       const specification = await controllerWrapper(
         async (transaction) => {
-          return await specificationService.update(data, {transaction})
+          return await specificationService.update({data:props, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при обновлении характеристики`, error)
       )
@@ -56,13 +60,14 @@ class specificationController {
     }
   }
   
-  static async destroy(req, res, next) {
+  static async destroy(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<ISpecification, keyof Pick<ISpecification, 'id'>>(req.body,['id'])
+      const queries = req.query
       
       const specification = await controllerWrapper(
         async (transaction) => {
-          return await specificationService.destroy(data, {transaction})
+          return await specificationService.destroy({data: props, queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении характеристики`, error)
       )
@@ -73,13 +78,13 @@ class specificationController {
     }
   }
   
-  static async addValue(req, res, next) {
+  static async addValue(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {specificationId, valueId} = req.body
       
       const specification = await controllerWrapper(
         async (transaction) => {
-          return await specificationService.addValue(data, {transaction})
+          return await specificationService.addValue({data: {specificationId,valueId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при добавлении значения характеристики`, error)
       )
@@ -90,13 +95,13 @@ class specificationController {
     }
   }
   
-  static async destroyValue(req, res, next) {
+  static async destroyValue(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {specificationId, valueId} = req.body
       
       const specification = await controllerWrapper(
         async (transaction) => {
-          return await specificationService.destroyValue(data, {transaction})
+          return await specificationService.destroyValue({data: {specificationId,valueId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении значения характеристики`, error)
       )

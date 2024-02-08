@@ -2,17 +2,20 @@ import {ApiError} from "../exceptions/api-error";
 import {categoryService} from "../services/category";
 import controllerWrapper from "../helpers/controller-wrapper";
 import {NextFunction, Request, Response} from "express";
+import {createDTO} from "../helpers/create-dto";
+import {ICategory} from "../models/product/category-model";
 
 
 class categoryController {
   
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<ICategory,'name'>(req.body,['name'])
+      const queries = req.query
       
       const category = await controllerWrapper(
         async (transaction) => {
-          return await categoryService.create(data, {transaction})
+          return await categoryService.create({data:props, queries,options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при создании категории`, error)
       )
@@ -28,7 +31,7 @@ class categoryController {
       
       const categories = await controllerWrapper(
         async (transaction) => {
-          return await categoryService.gets(queries, {transaction})
+          return await categoryService.gets({queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении категорий`, error)
       )
@@ -41,11 +44,11 @@ class categoryController {
   
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<ICategory,'id' |'name'>(req.body,['id','name'])
       
       const category = await controllerWrapper(
         async (transaction) => {
-          return await categoryService.update(data, {transaction})
+          return await categoryService.update({data:props, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при обновлении категории`, error)
       )
@@ -57,11 +60,12 @@ class categoryController {
   
   static async destroy(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<ICategory,'id'>(req.body,['id'])
+      const queries = req.query
       
       const category = await controllerWrapper(
         async (transaction) => {
-          return await categoryService.destroy(data, {transaction})
+          return await categoryService.destroy({data:props, queries,options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении категории`, error)
       )

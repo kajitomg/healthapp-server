@@ -1,7 +1,9 @@
+import createSlice from "../../helpers/create-slice";
+
 require('dotenv').config()
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
-import {MailAuthI} from "../../models/user/mail-auth-model";
+import {MyTransactionType} from "../../helpers/transaction";
+import {IMailAuth} from "../../models/user/mail-auth-model";
 
 const uuid = require('uuid')
 const {mailAuthModel} = require('../../models');
@@ -23,7 +25,9 @@ class mailService {
     })
   }
   
-  async create(options?: TransactionOptionsType): Promise<MailAuthI> {
+  create = createSlice<{
+    item:IMailAuth
+  }>(async ({options}) => {
     const transaction = options?.transaction
     
     const url = uuid.v4()
@@ -32,17 +36,17 @@ class mailService {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
-    return mailauth
+    return {item:mailauth}
     
-  }
+  })
   
-  async sendActivationLink(to: string, url: string, options?: TransactionOptionsType): Promise<void> {
+  sendActivationLink = createSlice<void,{to: string, url: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
     try {
       await this.transporter.sendMail({
         from: process.env.SMTP_USER,
-        to,
+        to:data.to,
         subject: `Активация аккаунта на ${process.env.API_URL}`,
         transaction: transaction.data,
         text: '',
@@ -50,7 +54,7 @@ class mailService {
           `
 							<div>
 								<h1>Для активации перейдите по ссылке</h1>
-								<a href="${url}">${url}</a>
+								<a href="${data.url}">${data.url}</a>
 							</div>
 						`
       })
@@ -58,20 +62,19 @@ class mailService {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest('Несуществующий email', [error])
     }
-    
-  }
+  })
   
-  async destroy(id: number, options?: TransactionOptionsType): Promise<number> {
+  destroy = createSlice<number, Pick<IMailAuth, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const mailauth = await mailAuthModel.destroy({where: {id}, transaction: transaction.data})
+    const mailauth = await mailAuthModel.destroy({where: data, transaction: transaction.data})
     if (!mailauth) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении пользователя`)
     }
     return 1
     
-  }
+  })
   
 }
 

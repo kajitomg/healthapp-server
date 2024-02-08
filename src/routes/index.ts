@@ -9,6 +9,9 @@ const categoryRouter = require('./category-route')
 const imageRouter = require('./image-route')
 const documentRouter = require('./document-route')
 const valueRouter = require('./value-route')
+const typeRouter = require('./type-route')
+const orderRouter = require('./order-route')
+const statusRouter = require('./status-route')
 
 router.use('/users', userRouter)
 router.use('/roles', roleRouter)
@@ -18,6 +21,9 @@ router.use('/categories', categoryRouter)
 router.use('/images', imageRouter)
 router.use('/documents', documentRouter)
 router.use('/values', valueRouter)
+router.use('/types', typeRouter)
+router.use('/orders', orderRouter)
+router.use('/statuses', statusRouter)
 
 module.exports = router
 export {}

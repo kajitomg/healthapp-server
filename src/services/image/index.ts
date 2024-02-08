@@ -1,16 +1,19 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
 import {imageModel} from "../../models";
-import {ImageI} from "../../models/image/image-model";
+import {IImage} from "../../models/image/image-model";
+import createSlice from "../../helpers/create-slice";
 import destroyFile from "../../helpers/destroy-file";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class imageService {
   
-  static async create(data?: { path: string }, options?: TransactionOptionsType): Promise<ImageI> {
+  static create = createSlice<{
+    item:IImage
+  },Pick<IImage, 'path' | 'name'>>(async ({data, options}) => {
     const transaction = options?.transaction
-    
+
     const result = await imageModel.create(data, {transaction: transaction.data})
     
     if (!result) {
@@ -18,10 +21,12 @@ class imageService {
       throw ApiError.BadRequest(`Ошибка при добавлении изображения`)
     }
     
-    return result
-  }
+    return {item:result}
+  })
   
-  static async get(data?: { id?: number, path?: string }, options?: TransactionOptionsType): Promise<ImageI> {
+  static get = createSlice<{
+    item:IImage
+  },{ id?: number, path?: string }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await imageModel.findOne({where: data, transaction: transaction.data})
@@ -31,15 +36,35 @@ class imageService {
       throw ApiError.BadRequest(`Ошибка при получении изображений`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async destroy(data?: { id: number }, options?: TransactionOptionsType): Promise<number> {
+  static update = createSlice<{
+    item:IImage
+  },Pick<IImage, 'id' | 'name'>>(async({data, options}) => {
+    const transaction = options?.transaction
+    
+    const image = await imageModel.findOne({where: {id:data.id}, transaction: transaction.data})
+    
+    await image.update(data,{transaction: transaction.data})
+    
+    if (!image) {
+      await t.rollback(transaction.data)
+      throw ApiError.BadRequest(`Ошибка при обновлении изображения`)
+    }
+    
+    return {
+      item:image
+    }
+  })
+  
+  static destroy = createSlice<number,Pick<IImage, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await imageModel.findOne({where: data, transaction: transaction.data})
-    
-    destroyFile([result.dataValues])
+    const destroyData = result.dataValues
     
     await result.destroy({transaction: transaction.data})
     
@@ -48,10 +73,12 @@ class imageService {
       throw ApiError.BadRequest(`Ошибка при удалении изображения`)
     }
     
+    destroyFile([destroyData])
+    
     return 1
-  }
+  })
   
-  static async destroys(data?: any[], options?: TransactionOptionsType): Promise<number> {
+  static destroys = createSlice<number,IImage[]>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const images = await imageModel.findAll({
@@ -66,7 +93,7 @@ class imageService {
     await imageModel.destroy({where: {id: images.map((image) => image.dataValues.id)}, transaction: transaction.data})
     
     return 1
-  }
+  })
 }
 
 export {imageService}

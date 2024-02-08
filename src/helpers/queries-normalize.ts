@@ -4,8 +4,8 @@ import {DBService} from "../services/db"
 export default function queriesNormalize(queries) {
   const sequelize = DBService.postgres.sequelize
   
-  const offset = queries?.page * queries?.limit - queries?.limit
-  const limit = queries?.limit
+  const offset = queries.page ? queries?.page * queries?.limit - queries?.limit: undefined
+  const limit = queries.limit ? queries?.limit : undefined
   const order = queries?.sort ? Object.entries(queries?.sort) : []
   const searched = {}
   

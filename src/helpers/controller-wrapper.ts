@@ -12,9 +12,10 @@ export default async function (callback, error) {
   const res = await callback(transaction)
   
   const commit = await t.commit(transaction.data)
+  
   if (t.isTransactionError(commit)) {
     throw error(commit.error)
   }
   
-  return res
+  return await res
 }

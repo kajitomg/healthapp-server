@@ -5,14 +5,16 @@ class productDTO {
   public price?: number
   public description?: number
   public discount?: string
+  public imageId?: number
   
-  constructor(user) {
-    this.id = user.id
-    this.name = user.name
-    this.article = user.article
-    this.price = user.price
-    this.description = user.description
-    this.discount = user.discount
+  constructor(product) {
+    this.id = product.id
+    this.name = product.name
+    this.article = product.article
+    this.price = product.price
+    this.description = product.description
+    this.discount = product.discount
+    this.imageId = product.imageId
   }
 }
 

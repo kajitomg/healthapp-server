@@ -1,52 +1,52 @@
 import {roleModel} from "../../models";
-import {RoleI} from "../../models/user/role-model";
+import {IRole} from "../../models/user/role-model";
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
+import createSlice from "../../helpers/create-slice";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class roleService {
-  static async create(level: string, name: string, options?: TransactionOptionsType): Promise<RoleI> {
+  static create = createSlice<IRole,Pick<IRole, 'name' | 'level'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const roleData = await roleModel.findOne({where: {level}, transaction: transaction.data})
+    const roleData = await roleModel.findOne({where: {level:data.level}, transaction: transaction.data})
     if (roleData) {
-      await t.rollback(transaction.data)
-      throw ApiError.BadRequest(`Роль с уровнем доступа ${level} уже существует`)
+      throw ApiError.BadRequest(`Роль с уровнем доступа ${data.level} уже существует`)
     }
-    const role = await roleModel.create({name, level}, {transaction: transaction.data})
+    const role = await roleModel.create(data, {transaction: transaction.data})
     if (!role) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
     return role
-  }
+  })
   
-  static async getOneById(id: number, options?: TransactionOptionsType): Promise<RoleI> {
-    const transaction = options?.transaction
+  static getOneById = createSlice<IRole,Pick<IRole, 'id'>>(async ({data, options}) => {
     
-    const roleData = await roleModel.findOne({where: {id}, transaction: transaction.data})
+    const transaction = options?.transaction
+    const roleData = await roleModel.findOne({where: data, transaction: transaction.data})
+    
     if (!roleData) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Роли не существует`)
     }
     
     return roleData
-  }
+  })
   
-  static async getOneByLevel(level: string, options?: TransactionOptionsType): Promise<RoleI> {
+  static getOneByLevel = createSlice<IRole,Pick<IRole, 'level'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const roleData = await roleModel.findOne({where: {level}, transaction: transaction.data})
+    const roleData = await roleModel.findOne({where: data, transaction: transaction.data})
     if (!roleData) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Роли не существует`)
     }
     
     return roleData
-  }
+  })
   
-  static async getAll(options?: TransactionOptionsType): Promise<RoleI> {
+  static getAll = createSlice<{list:IRole[]}>(async ({options}) => {
     const transaction = options?.transaction
     
     const roleData = await roleModel.findAll()
@@ -55,8 +55,10 @@ class roleService {
       throw ApiError.BadRequest(`Роли не существует`)
     }
     
-    return roleData
-  }
+    return {
+      list:roleData
+    }
+  })
 }
 
 export {roleService}

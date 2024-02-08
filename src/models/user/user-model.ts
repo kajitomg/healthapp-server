@@ -5,14 +5,16 @@ const {DataTypes} = require('sequelize')
 
 const sequelize = DBService.postgres.sequelize
 
-interface UserI extends Model<InferAttributes<UserI>, InferCreationAttributes<UserI>> {
-  id: CreationOptional<number>;
+
+interface IUser extends Model<InferAttributes<IUser>, InferCreationAttributes<IUser>> {
+  id: CreationOptional<number>,
   name: string,
   email: string,
-  password: string
+  password: string,
+  roleId: number,
 }
 
-const userModel: UserI = sequelize.define('user', {
+const userModel: IUser = sequelize.define('user', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   name: {type: DataTypes.STRING},
   email: {
@@ -23,4 +25,4 @@ const userModel: UserI = sequelize.define('user', {
   password: {type: DataTypes.STRING, allowNull: false}
 })
 
-export {userModel, UserI}
+export {userModel, IUser}

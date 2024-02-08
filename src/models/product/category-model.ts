@@ -5,14 +5,15 @@ const {DataTypes} = require('sequelize')
 
 const sequelize = DBService.postgres.sequelize
 
-interface CategoryI extends Model<InferAttributes<CategoryI>, InferCreationAttributes<CategoryI>> {
+interface ICategory extends Model<InferAttributes<ICategory>, InferCreationAttributes<ICategory>> {
   id: CreationOptional<number>;
   name: string,
+  levelId: CreationOptional<number>;
 }
 
-const categoryModel: CategoryI = sequelize.define('category', {
+const categoryModel: ICategory = sequelize.define('category', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   name: {type: DataTypes.STRING},
 })
 
-export {categoryModel, CategoryI}
+export {categoryModel, ICategory}

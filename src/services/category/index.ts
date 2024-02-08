@@ -1,28 +1,38 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
 import {categoryModel, imageModel} from "../../models";
-import {CategoryI} from "../../models/product/category-model";
+import {ICategory} from "../../models/product/category-model";
 import queriesNormalize from "../../helpers/queries-normalize";
+import createSlice from "../../helpers/create-slice";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class categoryService {
   
-  static async create(data: { name?: string }, options?: TransactionOptionsType): Promise<CategoryI> {
+  static create = createSlice<{
+    item:ICategory,
+    count:number
+  },Pick<ICategory, 'name'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
-    
+
     const result = await categoryModel.create(data, {transaction: transaction.data})
     
-    if (!result) {
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    if (!result || !count) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании категории`)
     }
     
-    return result
-    
-  }
+    return {
+      item:result,
+      count
+    }
+  })
   
-  static async get(data: { id?: number, name?: string }, options?: TransactionOptionsType): Promise<CategoryI> {
+  static get = createSlice<{
+    item:ICategory
+  },{ id?: number, name?: string }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await categoryModel.findOne({where: data, transaction: transaction.data})
@@ -32,13 +42,15 @@ class categoryService {
       throw ApiError.BadRequest(`Ошибка при получении категории`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async gets(queries: any, options?: TransactionOptionsType): Promise<{
-    categories: CategoryI[],
+  static gets = createSlice<{
+    list: ICategory[],
     count: number
-  }> {
+  }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
     
@@ -54,10 +66,10 @@ class categoryService {
     })
     
     
-    const {count} = await this.count(normalizeQueries, {transaction})
+    const {count} = await this.count({queries, options:{transaction}})
     
     const result = {
-      categories,
+      list:categories,
       count
     }
     if (!result) {
@@ -66,62 +78,81 @@ class categoryService {
     }
     
     return result
-  }
+  })
   
-  static async update(data: { id?: number, name?: string }, options?: TransactionOptionsType): Promise<CategoryI> {
+  static update = createSlice<{
+    item:ICategory
+  },Pick<ICategory, 'id' | 'name'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const result = await categoryModel.update(data, {where: data, transaction: transaction.data})
+    const result = await categoryModel.findOne({where: {id:data.id}, transaction: transaction.data})
+    
+    await result.update(data,{transaction: transaction.data})
     
     if (!result) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении категории`)
     }
     
-    return result
-  }
+    return {
+      item: result
+    }
+  })
   
-  static async destroy(data?: { categoryId: number }, options?: TransactionOptionsType): Promise<number> {
+  static destroy = createSlice<{
+    count:number
+  },Pick<ICategory, 'id'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
     
-    await categoryModel.destroy({where: {id: data.categoryId}, transaction: transaction.data})
+    await categoryModel.destroy({where: {id: data.id}, transaction: transaction.data})
     
-    return 1
-  }
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    return {
+      count
+    }
+  })
   
-  static async destroys(data?: any[], options?: TransactionOptionsType): Promise<number> {
+  static destroys = createSlice<{
+    count:number
+  },{items:ICategory[]}>(async ({data, queries, options}) => {
     const transaction = options?.transaction
-    
     
     const categories = await imageModel.destroy({
-      where: {id: data.map((category) => category.dataValues.id)},
+      where: {id: data.items.map((category) => category.dataValues.id)},
       transaction: transaction.data
     })
+    const {count} = await this.count({queries, options:{transaction}})
     
     if (!categories) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении изображений`)
     }
     
-    return 1
-  }
+    return {
+      count
+    }
+  })
   
-  static async count(queries: any, options?: TransactionOptionsType): Promise<{ count: number }> {
+  static count = createSlice<{
+    count: number
+  }>(async ({queries, options}) => {
     const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
     
     const count = await categoryModel.count({
       where: {
-        ...queries.searched
+        ...normalizeQueries.searched
       },
       raw: true,
       transaction: transaction.data,
-      order: queries.order
+      order: normalizeQueries.order
     })
     
     return {
       count
     }
-  }
+  })
   
 }
 

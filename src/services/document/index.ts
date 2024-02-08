@@ -1,14 +1,17 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
 import {documentModel} from "../../models";
-import {DocumentI} from "../../models/document/document-model";
+import {IDocument} from "../../models/document/document-model";
 import destroyFile from "../../helpers/destroy-file";
+import createSlice from "../../helpers/create-slice";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class documentService {
   
-  static async create(data?: { path: string }, options?: TransactionOptionsType): Promise<DocumentI> {
+  static create = createSlice<{
+    item:IDocument
+  },Pick<IDocument, 'path' | 'name'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await documentModel.create(data, {transaction: transaction.data})
@@ -18,10 +21,33 @@ class documentService {
       throw ApiError.BadRequest(`Ошибка при добавлении документа`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async get(data: { id?: number, path?: string }, options?: TransactionOptionsType): Promise<DocumentI> {
+  static update = createSlice<{
+    item:IDocument
+  },Pick<IDocument, 'id' | 'name'>>(async ({data, options}) => {
+    const transaction = options?.transaction
+    
+    const document = await documentModel.findOne({where: {id:data.id}, transaction: transaction.data})
+    
+    await document.update(data,{transaction: transaction.data})
+    
+    if (!document) {
+      await t.rollback(transaction.data)
+      throw ApiError.BadRequest(`Ошибка при обновлении документа`)
+    }
+    
+    return {
+      item:document
+    }
+  })
+  
+  static get = createSlice<{
+    item:IDocument
+  },Pick<IDocument, 'id' | 'path'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await documentModel.findOne({where: data, transaction: transaction.data})
@@ -31,31 +57,33 @@ class documentService {
       throw ApiError.BadRequest(`Ошибка при получении документа`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async destroy(data?: { id: number }, options?: TransactionOptionsType): Promise<number> {
+  static destroy = createSlice<number, Pick<IDocument, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await documentModel.findOne({where: data, transaction: transaction.data})
+    const destroyData = result.dataValues
     
-    destroyFile([result.dataValues])
+    const document = await result.destroy({transaction: transaction.data})
     
-    await result.destroy({transaction: transaction.data})
-    
-    if (!result) {
+    if (!document) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении документа`)
     }
+    destroyFile([destroyData])
     
-    return 1
-  }
+    return document
+  })
   
-  static async destroys(data?: any[], options?: TransactionOptionsType): Promise<number> {
+  static destroys = createSlice<number,{items:IDocument[]}>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const documents = await documentModel.findAll({
-      where: {id: data.map((document) => document.dataValues.id)},
+      where: {id: data.items.map((document) => document.dataValues.id)},
       transaction: transaction.data
     })
     
@@ -63,13 +91,11 @@ class documentService {
       return {path: document.dataValues.path}
     }))
     
-    await documentModel.destroy({
+    return await documentModel.destroy({
       where: {id: documents.map((document) => document.dataValues.id)},
       transaction: transaction.data
     })
-    
-    return 1
-  }
+  })
 }
 
 export {documentService}

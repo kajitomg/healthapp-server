@@ -1,192 +1,188 @@
 import {userDTO} from "../dto/user";
-import {MailAuthI} from "../../models/user/mail-auth-model";
+import {IMailAuth} from "../../models/user/mail-auth-model";
 import {ApiError} from "../../exceptions/api-error";
-import {RoleI} from "../../models/user/role-model";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
 import queriesNormalize from "../../helpers/queries-normalize";
-import {UserI} from "../../models/user/user-model";
+import {IUser} from "../../models/user/user-model";
+import createSlice from "../../helpers/create-slice";
 
 const bcrypt = require('bcrypt')
-const {authDataService} = require('../auth-data');
-const {tokenService} = require('../token');
-const {roleService} = require('../role');
+import {authDataService}  from '../auth-data';
+import {tokenService} from '../token';
+import {roleService} from '../role';
 const {DTOService} = require('../dto');
 const {mailAuthModel} = require('../../models');
 const {userModel} = require('../../models');
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class userService {
-  static async create(email: string, password: string, name?: string, level?: string, queries?: any, options?: TransactionOptionsType): Promise<{
-    accessToken: string,
-    refreshToken: string,
-    user: userDTO
-  }> {//HEAD
-    const transaction = options?.transaction
-    
-    const roleData = await roleService.getOneByLevel(level, {transaction})
-    
-    const registration = await this.registration(email, password, name, roleData, queries, {transaction})
-    
-    return {
-      ...registration,
-    }
-    
-  }
   
-  static async registration(email: string, password: string, name?: string, role?: RoleI, queries?: any, options?: TransactionOptionsType): Promise<{
+  static create =  createSlice<{
     accessToken: string,
     refreshToken: string,
-    user: userDTO
-  }> {//HEAD
+    item: Pick<IUser,'id' | 'name' | 'roleId'>,
+    count:number
+  },Pick<IUser,'name'|'password'|'email'|'roleId'>>(async ({data, options, queries}) => {
     const transaction = options?.transaction
-    const normalizeQueries = queriesNormalize(queries)
     
-    const candidate = await userModel.findOne({where: {email}, transaction: transaction.data})
+    return await this.registration({data, queries, options:{transaction}})
+  })
+  
+  static registration = createSlice<{
+    accessToken: string,
+    refreshToken: string,
+    item: Pick<IUser,'id' | 'name' | 'roleId'>,
+    count:number
+  },Pick<IUser,'name'|'password'|'email'|'roleId'>>(async ({data,options,queries}) => {//HEAD
+    const transaction = options?.transaction
+    
+    const candidate = await userModel.findOne({where: {email:data.email}, transaction: transaction.data})
     if (candidate) {
       await t.rollback(transaction.data)
-      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${email} уже существует`)
+      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data.email} уже существует`)
     }
     
-    const hashedPassword = await bcrypt.hash(password, 5)
-    let user = await userModel.create({email, password: hashedPassword, name}, {transaction: transaction.data})
+    const hashedPassword = await bcrypt.hash(data.password, 5)
+    let user = await userModel.create({email:data.email, password: hashedPassword, name:data.name}, {transaction: transaction.data})
     if (!user) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
     
-    const userdto = await this.setRole(user.id, role ? role.level : null, {transaction})
+    const userDTO = await this.setRole({data:{id:user.id, roleId:data.roleId}, options:{transaction}})
     
-    await authDataService.create(userdto.id, {transaction})
+    await authDataService.create({data:{userId:userDTO.item.id},options:{transaction}})
     
-    const tokens = tokenService.generateToken({...userdto})
-    await tokenService.create(userdto.id, tokens.refreshToken, {transaction})
+    const tokens = await tokenService.generateToken({data:userDTO.item})
+    await tokenService.create({data:{userId:userDTO.item.id, refreshToken:tokens.refreshToken},options:{transaction}})
     
-    const {count} = await this.count(normalizeQueries, {transaction})
+    const {count} = await this.count({queries, options:{transaction}})
     
     
     return {
       ...tokens,
-      user: userdto,
+      item: userDTO.item,
       count
     }
-    
-  }
+  })
   
-  static async adminLogin(email: string, password: string, options?: TransactionOptionsType): Promise<{
+  static adminLogin = createSlice<{
     accessToken: string,
     refreshToken: string,
-    user: userDTO
-  }> {
+    item: Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>
+  },Pick<IUser, 'email' | 'password'>>( async ({data, options}) => {
     const transaction = options?.transaction
-    const user = await userModel.findOne({where: {email}, transaction: transaction.data})
+    const user = await userModel.findOne({where: {email:data.email}, transaction: transaction.data})
     if (!user) {
       await t.rollback(transaction.data)
-      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${email} не найден`)
+      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data.email} не найден`)
     }
-    const role = await roleService.getOneById(user.roleId, {transaction})
-    if (role.level > 300) {
+    const role = await roleService.getOneById({data:{id:user.roleId},options:{transaction}})
+    if (+role.level > 300) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Нет доступа к сервису`)
     }
     
-    const data = await this.login(email, password, options)
-    
-    return data
-  }
+    return await this.login({data, options})
+  })
   
-  static async login(email: string, password: string, options?: TransactionOptionsType): Promise<{
+  static login = createSlice<{
     accessToken: string,
     refreshToken: string,
-    user: userDTO
-  }> {
+    item: Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>
+  },Pick<IUser, 'email' | 'password'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const user = await userModel.findOne({where: {email}, transaction: transaction.data})
+    const user = await userModel.findOne({where: {email:data.email}, transaction: transaction.data})
     if (!user) {
       await t.rollback(transaction.data)
-      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${email} не найден`)
+      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data.email} не найден`)
     }
     
-    const isPassEquals = await bcrypt.compare(password, user.password)
+    const isPassEquals = await bcrypt.compare(data.password, user.password)
     if (!isPassEquals) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Неверный пароль`)
     }
-    const userdto = DTOService.user(user)
+    const userDTO = DTOService.user(user)
     
-    const tokens = await tokenService.generateToken({...userdto})
-    await tokenService.saveToken(userdto.id, tokens.refreshToken, {transaction})
+    const tokens = await tokenService.generateToken({data:userDTO})
+    await tokenService.saveToken({data:{userId:userDTO.id, refreshToken:tokens.refreshToken},options:{transaction}})
     
     return {
       ...tokens,
-      user: userdto
+      item: userDTO
     }
-  }
+  })
   
-  static async logout(refreshToken: string, options?: TransactionOptionsType): Promise<string> {
+  static logout = createSlice<string,{refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const token = await tokenService.removeToken(refreshToken, {transaction})
+    const token = await tokenService.removeToken({data,options:{transaction}})
     const commit = await t.commit(transaction.data)
     if (t.isTransactionError(commit)) {
       throw ApiError.BadRequest(`Ошибка при создании пользователя`, commit.error)
     }
     
     return token
-  }
+  })
   
-  static async update(email: string, name?: string, options?: TransactionOptionsType): Promise<{ user: userDTO }> {
+  static update = createSlice<{
+    item: Pick<IUser, 'id' | 'email' | 'name' | 'roleId'>
+  } ,Pick<IUser, 'email' | 'name'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    let user = await userModel.findOne({where: {email}, transaction: transaction.data})
+    let user = await userModel.findOne({where: {email:data.email}, transaction: transaction.data})
     
     if (!user) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при поиске пользователя`)
     }
     
-    if (email) user.email = email
-    if (name) user.name = name
+    if (data.email) user.email = data.email
+    if (data.name) user.name = data.name
     user = await user.save({transaction: transaction.data})
     
     const userdto = new userDTO(user)
     
     return {
-      user: userdto
+      item: userdto
     }
-  }
+  })
   
-  static async destroy(id: number, queries: any, options?: TransactionOptionsType): Promise<{ count: number }> {
+  static destroy = createSlice<{
+    count: number
+  },Pick<IUser, 'id'>>(async ({data, queries, options}) => {
     const transaction = options?.transaction
     
-    const normalizeQueries = queriesNormalize(queries)
-    
-    const token = await tokenService.destroy(id, {transaction})
-    const authData = await authDataService.destroy(id, {transaction})
-    const user = await userModel.destroy({where: {id}, transaction: transaction.data})
+    const token = await tokenService.destroy({data:{userId:data.id},options:{transaction}})
+    const authData = await authDataService.destroy({data:{userId:data.id},options:{transaction}})
+    const user = await userModel.destroy({where: data, transaction: transaction.data})
     if (!user && !authData && !token) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении пользователя`)
     }
     
-    const {count} = await this.count(normalizeQueries, {transaction})
+    const {count} = await this.count({queries, options:{transaction}})
     
     return {
       count
     }
-  }
+  })
   
-  static async setRole(userId: number, roleLevel: string, options?: TransactionOptionsType): Promise<userDTO> {
+  static setRole = createSlice<{
+    item: Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>
+  },Pick<IUser,'id' | 'roleId'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const userData = await userModel.findOne({where: {id: userId}, transaction: transaction.data})
+    const userData = await userModel.findOne({where: {id: data.id}, transaction: transaction.data})
     
     if (!userData) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Пользователя с данным идентификатором не существует`)
     }
     
-    const role = await roleService.getOneByLevel(roleLevel ? roleLevel : '400', {transaction})
+    const role = await roleService.getOneById({data:{id:data.roleId},options:{transaction}})
     
     userData.roleId = role.id
     const user = await userData.save({transaction: transaction.data})
@@ -195,26 +191,35 @@ class userService {
       throw ApiError.BadRequest(`Ошибка при сохранении пользователя`)
     }
     
-    return DTOService.user(user)
-  }
+    return {
+      item: DTOService.user(user)
+    }
+  })
   
-  static async getOneById(id: number, options?: TransactionOptionsType): Promise<UserI> {
+  static getOneById = createSlice<{
+    item:Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>
+  },Pick<IUser, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const user = await userModel.findOne({where: {id}, transaction: transaction.data})
+    const user = await userModel.findOne({where: data, transaction: transaction.data})
     if (!user) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Пользователя с данным идентификатором не существует`)
     }
     
-    return user
-  }
+    return {
+      item:user
+    }
+  })
   
-  static async gets(queries: any, options?: TransactionOptionsType): Promise<{ users: userDTO[], count: number }> {
+  static gets = createSlice<{
+    list: Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>[],
+    count: number
+  }>(async ({queries, options}) => {
     const transaction = options?.transaction
     
     const normalizeQueries = queriesNormalize(queries)
-    
+
     const users = await userModel.findAll({
       where: {
         ...normalizeQueries.searched
@@ -226,42 +231,48 @@ class userService {
       order: normalizeQueries.order
     })
     
-    const {count} = await this.count(normalizeQueries, {transaction})
-    
+    const {count} = await this.count({queries, options:{transaction}})
+
     const result = {
-      users: users.map(user => new userDTO(user)),
+      list: users.map(user => new userDTO(user)),
       count
     }
     
-    if (!result.users || !result.count) {
+    /*if (!result.list || !result.count) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при поиске пользователей`)
-    }
+    }*/
     
     return result
-  }
+  })
   
-  static async count(queries: any, options?: TransactionOptionsType): Promise<{ count: number }> {
+  static count = createSlice<{
+    count: number
+  }>(async ({queries, options}) => {
     const transaction = options?.transaction
+    
+    const normalizeQueries = queriesNormalize(queries)
     
     const count = await userModel.count({
       where: {
-        ...queries.searched
+        ...normalizeQueries.searched
       },
       raw: true,
       transaction: transaction.data,
-      order: queries.order
+      order: normalizeQueries.order
     })
     
     return {
       count
     }
-  }
+  })
   
-  static async activate(activateLink: string, options?: TransactionOptionsType): Promise<MailAuthI> {
+  static activate = createSlice<{
+    item:IMailAuth
+  },{activateLink: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const mail = await mailAuthModel.findOne({where: {url: activateLink}})
+    const mail = await mailAuthModel.findOne({where: {url: data.activateLink}})
     if (!mail) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Некорректная ссылка активации`)
@@ -270,23 +281,25 @@ class userService {
     mail.confirmation = true
     const mailData = await mail.save({transaction: transaction.data})
     
-    return mailData
-  }
+    return {
+      item: mailData
+    }
+  })
   
-  static async refresh(refreshToken, options?: TransactionOptionsType): Promise<{
+  static refresh = createSlice<{
     accessToken: string,
     refreshToken: string,
-    user: userDTO
-  }> {
+    item: Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>
+  },{refreshToken:string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    if (!refreshToken) {
+    if (!data.refreshToken) {
       await t.rollback(transaction.data)
       throw ApiError.UnauthorizedError()
     }
     
-    const userData = tokenService.validateRefreshToken(refreshToken)
-    const tokenFromDB = await tokenService.getToken(refreshToken, {transaction})
+    const userData = await tokenService.validateRefreshToken({data:{token:data.refreshToken}})
+    const tokenFromDB = await tokenService.getToken({data:{refreshToken:data.refreshToken},options:{transaction}})
     
     if (!userData || !tokenFromDB) throw ApiError.UnauthorizedError()
     
@@ -297,14 +310,14 @@ class userService {
     }
     const userdto = DTOService.user(user)
     
-    const tokens = tokenService.generateToken({...userdto})
-    await tokenService.saveToken(userdto.id, tokens.refreshToken, {transaction})
+    const tokens = await tokenService.generateToken({data:userdto})
+    await tokenService.saveToken({data:{userId:userdto.id,refreshToken:tokens.refreshToken},options:{transaction}})
     
     return {
       ...tokens,
-      user: userdto
+      item: userdto
     }
-  }
+  })
   
 }
 

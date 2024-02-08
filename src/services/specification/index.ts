@@ -1,30 +1,25 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
 import {
   categoryModel,
-  productModel,
   specificationModel,
   typeModel,
-  userModel,
   valueModel
 } from "../../models";
-import {SpecificationI} from "../../models/product/specification-model";
+import {ISpecification} from "../../models/product/specification-model";
 import {valueService} from "../value";
-import {ProductI} from "../../models/product/product-model";
 import queriesNormalize from "../../helpers/queries-normalize";
+import createSlice from "../../helpers/create-slice";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class specificationService {
   
-  static async create(data: {
-    name?: string,
-    basic?: boolean,
-    typeId?: number,
-    categoryId?: number
-  }, options?: TransactionOptionsType): Promise<SpecificationI> {
+  static create = createSlice<{
+    item:ISpecification,
+    count:number
+  },Pick<ISpecification, 'name'|'basic'|'typeId'|'categoryId'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
-    
     const type = data.typeId && typeModel.findOne({where: {id: data.typeId}})
     if (!type) {
       delete data.typeId
@@ -34,44 +29,48 @@ class specificationService {
       delete data.categoryId
     }
     
+    
     const specification = await specificationModel.create(data, {transaction: transaction.data})
     
-    if (!specification) {
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    if (!specification|| !count) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании характеристики`)
     }
     
-    return specification
-    
-  }
+    return {
+      item:specification,
+      count
+    }
+  })
   
-  static async get(data: {
-    id?: number,
-    name?: string,
-    typeId?: number,
-    categoryId?: number
-  }, options?: TransactionOptionsType): Promise<SpecificationI> {
+  static get = createSlice<{
+    item:ISpecification
+  },Pick<ISpecification, 'id'|'basic'|'typeId'|'categoryId'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const result = specificationModel.findAll({where: data, transaction: transaction.data})
+    const result = await specificationModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении характеристики`)
     }
     
-    return result
+    return {
+      item:result
+    }
     
-  }
+  })
   
-  static async gets(queries: any, options?: TransactionOptionsType): Promise<{
-    specifications: ProductI[],
+  static gets = createSlice<{
+    list: ISpecification[],
     count: number
-  }> {
+  }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
     
-    const specifications = await productModel.findAll({
+    const specifications = await specificationModel.findAll({
       where: {
         ...normalizeQueries.searched
       },
@@ -83,10 +82,10 @@ class specificationService {
     })
     
     
-    const {count} = await this.count(normalizeQueries, {transaction})
+    const {count} = await this.count({queries, options:{transaction}})
     
     const result = {
-      specifications,
+      list:specifications,
       count
     }
     if (!result) {
@@ -95,14 +94,11 @@ class specificationService {
     }
     
     return result
-  }
+  })
   
-  static async update(data: {
-    id: number,
-    name?: string,
-    typeId?: number,
-    categoryId?: number
-  }, options?: TransactionOptionsType): Promise<SpecificationI> {
+  static update = createSlice<{
+    item:ISpecification
+  },Pick<ISpecification, 'id'|'name'|'typeId'|'categoryId'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const type = typeModel.findOne({where: {id: data.typeId}})
@@ -121,93 +117,111 @@ class specificationService {
       throw ApiError.BadRequest(`Ошибка при обновлении характеристики`)
     }
     
-    return specification
+    return {
+      item:specification
+    }
     
-  }
+  })
   
-  static async addValue(data: {
+  static addValue = createSlice<{
+    item:ISpecification
+  },{
     specificationId: number,
     valueId: number
-  }, options?: TransactionOptionsType): Promise<SpecificationI> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const specification = specificationModel.findOne({where: {id: data.specificationId}, transaction: transaction.data})
-    const value = await valueService.get({id: data.valueId}, {transaction})
+    const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
     
-    await specification.addValue(value, {through: {selfGranted: false}})
+    await specification.addValue(value.item, {through: {selfGranted: false}})
     
     if (!specification) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении значения характеристике`)
     }
     
-    return specification
-  }
+    return {
+      item:specification
+    }
+  })
   
-  static async destroyValue(data: {
+  static destroyValue = createSlice<{
+    item:ISpecification
+  },{
     specificationId: number,
     valueId: number
-  }, options?: TransactionOptionsType): Promise<SpecificationI> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const specification = specificationModel.findOne({where: {id: data.specificationId}, transaction: transaction.data})
-    const value = await valueService.get({id: data.valueId}, {transaction})
+    const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
     
-    await specification.removeValue(value, {through: {selfGranted: false}})
+    await specification.removeValue(value.item, {through: {selfGranted: false}})
     
     if (!specification) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении значения характеристике`)
     }
     
-    return specification
-  }
+    return {
+      item:specification
+    }
+  })
   
   
-  static async destroy(data?: { specificationId: number }, options?: TransactionOptionsType): Promise<number> {
+  static destroy = createSlice<{count:number},Pick<ISpecification, 'id'>>(async ({data, queries, options}) => {
     const transaction = options?.transaction
     
-    const specification = await productModel.findOne({
-      where: {id: data.specificationId},
+    const specification = await specificationModel.findOne({
+      where: {id: data.id},
       include: [valueModel],
       transaction: transaction.data
     })
     
-    await valueService.destroys(specification.dataValues.values.filter((value) => !value.basic), {transaction})
+    await valueService.destroys({data:specification.dataValues.values.filter((value) => !value.basic), options:{transaction}})
     
     await specification.destroy({transaction: transaction.data})
     
-    return 1
+    const {count} = await this.count({queries, options:{transaction}})
     
-  }
+    return {count}
+    
+  })
   
-  static async destroys(data?: any[], options?: TransactionOptionsType): Promise<number> {
+  static destroys = createSlice<{count:number}, { items:ISpecification[] }>(async ({data, queries, options}) => {
     const transaction = options?.transaction
     
     await specificationModel.destroy({
-      where: {id: data.map((value) => value.dataValues.id)},
+      where: {id: data.items.map((value) => value.dataValues.id)},
       transaction: transaction.data
     })
+    const {count} = await this.count({queries, options:{transaction}})
     
-    return 1
-  }
+    return {
+      count
+    }
+  })
   
-  static async count(queries: any, options?: TransactionOptionsType): Promise<{ count: number }> {
+  static count = createSlice<{
+    count: number
+  }>(async ({queries, options}) => {
     const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
     
-    const count = await userModel.count({
+    const count = await specificationModel.count({
       where: {
-        ...queries.searched
+        ...normalizeQueries.searched
       },
       raw: true,
       transaction: transaction.data,
-      order: queries.order
+      order: normalizeQueries.order
     })
     
     return {
       count
     }
-  }
+  })
   
 }
 

@@ -1,7 +1,8 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
-import {TokenI} from "../../models/user/token-model";
+import {MyTransactionType} from "../../helpers/transaction";
+import {IToken} from "../../models/user/token-model";
 import {userDTO} from "../dto/user";
+import createSlice from "../../helpers/create-slice";
 
 require('dotenv').config()
 const jwt = require('jsonwebtoken')
@@ -9,63 +10,62 @@ const {tokenModel} = require('../../models');
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class tokenService {
-  static async create(userId: number, refreshToken: string, options?: TransactionOptionsType): Promise<TokenI> {
+  static create = createSlice<IToken,{userId: number, refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const token = await tokenModel.create({userId, refresh: refreshToken}, {transaction: transaction.data})
+    const token = await tokenModel.create({userId:data.userId,refresh:data.refreshToken}, {transaction: transaction.data})
     if (!token) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
     return token
     
-  }
+  })
   
-  static async destroy(userId: number, options?: TransactionOptionsType): Promise<number> {
+  static destroy = createSlice<number,{userId: number}>(async ({data, options}) => {
     const transaction = options?.transaction
-    const token = await tokenModel.destroy({where: {userId}, transaction: transaction.data})
+    
+    const token = await tokenModel.destroy({where: data, transaction: transaction.data})
     if (!token) {
       return 1
     }
     return token
     
-  }
+  })
   
-  static generateToken(payload: any): { accessToken: string, refreshToken: string } {
-    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_KEY, {expiresIn: `${process.env.JWT_ACCESS_AGE}m`})
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_KEY, {expiresIn: `${process.env.JWT_REFRESH_AGE}d`})
+  static generateToken = createSlice<{ accessToken: string, refreshToken: string },userDTO>(async  ({data}) => {
+     const accessToken = jwt.sign(JSON.parse(JSON.stringify(data)), process.env.JWT_ACCESS_KEY, {expiresIn: `${process.env.JWT_ACCESS_AGE}m`})
+    const refreshToken = jwt.sign(JSON.parse(JSON.stringify(data)), process.env.JWT_REFRESH_KEY, {expiresIn: `${process.env.JWT_REFRESH_AGE}d`})
     
     return {
       accessToken,
       refreshToken
     }
-  }
+  })
   
-  static validateAccessToken(token: string): userDTO | null {
+  static validateAccessToken = createSlice<userDTO | null,{token: string}>(async ({data}) => {
     try {
-      const userData = jwt.verify(token, process.env.JWT_ACCESS_KEY)
-      return userData
+      return jwt.verify(data.token, process.env.JWT_ACCESS_KEY)
     } catch (e) {
       return null
     }
-  }
+  })
   
-  static validateRefreshToken(token: string): userDTO | null {
+  static validateRefreshToken = createSlice<userDTO | null,{token: string}>(({data}) => {
     try {
-      const userData = jwt.verify(token, process.env.JWT_REFRESH_KEY)
-      return userData
+      return jwt.verify(data.token, process.env.JWT_REFRESH_KEY)
     } catch (e) {
       return null
     }
-  }
+  })
   
-  static async saveToken(userId: number, refreshToken: string, options?: TransactionOptionsType): Promise<TokenI> {
+  static saveToken = createSlice<IToken,{userId: number, refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const tokenData = await tokenModel.findOne({where: {userId}, transaction: transaction.data})
+    const tokenData = await tokenModel.findOne({where: {userId:data.userId}, transaction: transaction.data})
     
     if (tokenData) {
-      tokenData.refresh = refreshToken
+      tokenData.refresh = data.refreshToken
       const token = await tokenData.save({transaction: transaction.data})
       if (!token) {
         await t.rollback(transaction.data)
@@ -73,32 +73,32 @@ class tokenService {
       }
       return token
     }
-    return await this.create(userId, refreshToken, {transaction: options.transaction})
+    return await this.create({data, options:{transaction: options.transaction}})
     
-  }
+  })
   
-  static async removeToken(refreshToken: string, options?: TransactionOptionsType): Promise<string> {
+  static removeToken = createSlice<string,{refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const token = await tokenModel.destroy({where: {refresh: refreshToken}, transaction: transaction.data})
+    const token = await tokenModel.destroy({where: {refresh: data.refreshToken}, transaction: transaction.data})
     if (!token) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении токена`)
     }
     return token
-  }
+  })
   
-  static async getToken(refreshToken: string, options?: TransactionOptionsType): Promise<string> {
+  static getToken = createSlice<string,{refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const token = await tokenModel.findOne({where: {refresh: refreshToken}, transaction: transaction.data})
+    const token = await tokenModel.findOne({where: {refresh: data.refreshToken}, transaction: transaction.data})
     
     if (!token) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при поиске токена`)
     }
     return token
-  }
+  })
 }
 
 export {tokenService}

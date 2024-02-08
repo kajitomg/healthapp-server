@@ -7,22 +7,23 @@ const t: MyTransactionType = require('../helpers/transaction')
 
 module.exports = (level) => {
   return async (req, res, next) => {
+    const transaction = await t.create()
     try {
-      const transaction = await t.create()
       
       if (t.isTransactionError(transaction)) {
         throw ApiError.BadRequest(`Ошибка при авторизации пользователя`, transaction.error)
       }
+      
       let accessToken = req.headers.authorization
       if (accessToken.split(' ')[1])
         accessToken = accessToken.split(' ')[1]
       
       if (!accessToken) throw next(ApiError.UnauthorizedError())
       
-      const userData = tokenService.validateAccessToken(accessToken)
+      const userData = await tokenService.validateAccessToken({data:{token:accessToken}, options:{transaction}})
       if (!userData) throw next(ApiError.UnauthorizedError())
       
-      const roleData = await roleService.getOneById(userData.roleId, {transaction})
+      const roleData = await roleService.getOneById({data:{id:userData.roleId}, options:{transaction}})
       if (roleData.level > level) {
         throw await next(ApiError.BadRequest('Нет доступа'))
       }
@@ -33,6 +34,9 @@ module.exports = (level) => {
       req.user = userData
       next()
     } catch (e) {
+      if (!t.isTransactionError(transaction)) {
+        await t.rollback(transaction.data)
+      }
       next()
     }
   }

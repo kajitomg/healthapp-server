@@ -1,5 +1,5 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType, TransactionOptionsType} from "../../helpers/transaction";
+import {MyTransactionType} from "../../helpers/transaction";
 import {
   categoryModel,
   documentModel,
@@ -7,71 +7,86 @@ import {
   productModel,
   specificationModel,
   typeModel,
-  userModel, valueModel
 } from "../../models";
-import {productDTO} from "../dto/product";
-import {ProductI} from "../../models/product/product-model";
+import {IProduct} from "../../models/product/product-model";
 import {imageService} from "../image";
 import {documentService} from "../document";
-import {ImageI} from "../../models/image/image-model";
-import {DocumentI} from "../../models/document/document-model";
-import {CategoryI} from "../../models/product/category-model";
 import queriesNormalize from "../../helpers/queries-normalize";
 import {categoryService} from "../category";
 import {specificationService} from "../specification";
-import {typeService} from "../type";
 import {valueService} from "../value";
+import createSlice from "../../helpers/create-slice";
 
 const t: MyTransactionType = require('../../helpers/transaction')
 
 class productService {
   
-  static async create(data?: productDTO, options?: TransactionOptionsType): Promise<ProductI> {
+  static create = createSlice<{
+    item:IProduct,
+    count:number
+  },Pick<IProduct,'name' | 'description' | 'imageId' | 'article' | 'discount' | 'price'>>(async ({data, queries, options}) => {
     const transaction = options?.transaction
     
-    const result = await productModel.create(data, {transaction: transaction.data})
+    const product = await productModel.create(data, {transaction: transaction.data})
     
-    if (!result) {
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    if (!product || !count) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании продукта`)
     }
     
-    return result
-  }
+    return {
+      item:product,
+      count
+    }
+  })
   
-  static async get(data: { id?: number, name?: string }, options?: TransactionOptionsType): Promise<CategoryI> {
+  static get = createSlice<{
+    item:IProduct
+  },Pick<IProduct, 'id' | 'name'>>(async ({data, options}) => {
     const transaction = options?.transaction
-    
-    const result = await productModel.findOne({where: data, transaction: transaction.data})
+
+    const result = await productModel.findOne({
+      where:data,
+      include:
+        [imageModel, documentModel, specificationModel, categoryModel],
+      transaction: transaction.data}
+    )
     
     if (!result) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении продукта`)
     }
     
-    return result
-  }
+    return {item:result}
+  })
   
-  static async gets(queries: any, options?: TransactionOptionsType): Promise<{ products: ProductI[], count: number }> {
+  static gets = createSlice<{
+    list: IProduct[],
+    count: number
+  }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
-    
+
     const products = await productModel.findAll({
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
+      raw: false,
+      include:
+        [imageModel, documentModel, specificationModel, categoryModel],
       offset: normalizeQueries.offset,
       limit: normalizeQueries.limit,
       order: normalizeQueries.order,
       transaction: transaction.data
     })
+    console.log(products)
     
-    
-    const {count} = await this.count(normalizeQueries, {transaction})
+    const {count} = await this.count({queries, options:{transaction}})
     
     const result = {
-      products,
+      list:products,
       count
     }
     if (!result) {
@@ -80,41 +95,54 @@ class productService {
     }
     
     return result
-  }
+  })
   
-  static async update(data: { id?: number, name?: string }, options?: TransactionOptionsType): Promise<CategoryI> {
+  static update = createSlice<{
+    item:IProduct
+  },Pick<IProduct, 'id' | 'name' | 'price' | 'discount' | 'article' | 'description'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const result = await productModel.update(data, {where: data, transaction: transaction.data})
+    const product = await productModel.findOne({where: {id:data.id}, transaction: transaction.data})
     
-    if (!result) {
+    await product.update(data,{transaction: transaction.data})
+    
+    const result = await this.get({data:{id:data.id},options:{transaction}})
+    
+    if (!product) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении продукта`)
     }
     
-    return result
-  }
+    return {item:result.item}
+  })
   
-  static async destroy(data?: { productId: number }, options?: TransactionOptionsType): Promise<number> {
+  static destroy = createSlice<{
+    count:number
+  },Pick<IProduct, 'id'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({
-      where: {id: data.productId},
-      include: [imageModel, documentModel, specificationModel, valueModel],
+      where: {id: data.id},
+      include:
+        [imageModel, documentModel, specificationModel, categoryModel],
       transaction: transaction.data
     })
     
-    await imageService.destroys(product.dataValues.images, {transaction})
-    await documentService.destroys(product.dataValues.documents, {transaction})
-    await specificationService.destroys(product.dataValues.specifications.filter((specification) => !specification.basic), {transaction})
-    await valueService.destroys(product.dataValues.values.filter((value) => !value.basic), {transaction})
-    
+    await imageService.destroys({data:product.dataValues.images,options:{transaction}})
+    await documentService.destroys({data:product.dataValues.documents,options:{transaction}})
+    await specificationService.destroys({data:product.dataValues.specifications.filter((specification) => !specification.basic),options:{transaction}})
+    await valueService.destroys({data:product.dataValues.values.filter((value) => !value.basic),options:{transaction}})
+
     await product.destroy({transaction: transaction.data})
     
-    return 1
-  }
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    return {count}
+  })
   
-  static async images(data: { id: number }, options?: TransactionOptionsType): Promise<ProductI> {
+  static images = createSlice<{
+    item:IProduct
+  },Pick<IProduct, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await productModel.findOne({where: data, include: imageModel, transaction: transaction.data})
@@ -124,10 +152,14 @@ class productService {
       throw ApiError.BadRequest(`Ошибка при получении изображений продукта`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async documents(data: { id?: number }, options?: TransactionOptionsType): Promise<ProductI> {
+  static documents = createSlice<{
+  item:IProduct
+},Pick<IProduct, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await productModel.findOne({where: data, include: documentModel, transaction: transaction.data})
@@ -137,10 +169,14 @@ class productService {
       throw ApiError.BadRequest(`Ошибка при получении документов продукта`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async categories(data: { id?: number }, options?: TransactionOptionsType): Promise<ProductI> {
+  static categories = createSlice<{
+  item:IProduct
+},Pick<IProduct, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await productModel.findOne({where: data, include: categoryModel, transaction: transaction.data})
@@ -150,10 +186,14 @@ class productService {
       throw ApiError.BadRequest(`Ошибка при получении категорий продукта`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async specifications(data: { id?: number }, options?: TransactionOptionsType): Promise<ProductI> {
+  static specifications = createSlice<{
+  item:IProduct
+},Pick<IProduct, 'id'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await productModel.findOne({
@@ -167,42 +207,47 @@ class productService {
       throw ApiError.BadRequest(`Ошибка при получении характеристик продукта`)
     }
     
-    return result
-  }
+    return {
+      item:result
+    }
+  })
   
-  static async addImage(data?: {
+  static addImage = createSlice<{
+    item:IProduct
+  },{
     productId: number,
     imageId: number
-  }, options?: TransactionOptionsType): Promise<ImageI> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
-    const image = await imageService.get({id: data.imageId}, {transaction})
+    const image = await imageService.get({data:{id: data.imageId},options:{transaction}})
     
-    await product.addImage(image, {through: {selfGranted: false}})
+    await product.addImage(image.item, {through: {selfGranted: false}})
+    
+    const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!image) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении изображения`)
     }
     
-    return image
-  }
+    return {item:result.item}
+  })
   
-  static async destroyImage(data?: {
+  static destroyImage = createSlice<number,{
     productId: number,
-    id?: number,
     imageId: number
-  }, options?: TransactionOptionsType): Promise<number> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     
-    const image = await imageService.get({id: data.imageId}, {transaction})
+    const image = await imageService.get({data:{id: data.imageId},options:{transaction}})
     
-    await product.removeImage(image, {transaction: transaction.data})
+    await product.removeImage(image.item, {transaction: transaction.data})
     
-    await imageService.destroy({id: image.dataValues.id}, {transaction})
+    await imageService.destroy({data:{id: image.item.dataValues.id}, options:{transaction}})
     
     if (!product) {
       await t.rollback(transaction.data)
@@ -210,40 +255,44 @@ class productService {
     }
     
     return 1
-  }
+  })
   
-  static async addDocument(data?: {
+  static addDocument = createSlice<{
+    item:IProduct
+  },{
     productId: number,
     documentId: number
-  }, options?: TransactionOptionsType): Promise<DocumentI> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
-    const document = await documentService.get({id: data.documentId}, {transaction})
+    const document = await documentService.get({data:{id: data.documentId}, options:{transaction}})
     
-    await product.addDocument(document, {through: {selfGranted: false}})
+    await product.addDocument(document.item, {through: {selfGranted: false}})
+    
+    const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!document) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении документа`)
     }
     
-    return document
-  }
+    return {item:result.item}
+  })
   
-  static async destroyDocument(data?: {
+  static destroyDocument = createSlice<number,{
     productId: number,
     documentId: number
-  }, options?: TransactionOptionsType): Promise<number> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     
-    const document = await documentService.get({id: data.documentId}, {transaction})
+    const document = await documentService.get({data:{id: data.documentId}, options:{transaction}})
     
-    await product.removeDocument(document, {transaction: transaction.data})
+    await product.removeDocument(document.item, {transaction: transaction.data})
     
-    await documentService.destroy({id: document.dataValues.id}, {transaction})
+    await documentService.destroy({data:{id: document.item.dataValues.id}, options:{transaction}})
     
     if (!product) {
       await t.rollback(transaction.data)
@@ -251,108 +300,122 @@ class productService {
     }
     
     return 1
-  }
+  })
   
-  static async addCategory(data?: {
+  static addCategory = createSlice<{
+    item:IProduct
+  },{
     productId: number,
     categoryId: number
-  }, options?: TransactionOptionsType): Promise<CategoryI> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
-    const category = await categoryService.get({id: data.categoryId}, {transaction})
+    const category = await categoryService.get({data:{id: data.categoryId}, options:{transaction}})
     
-    await product.addCategory(category, {through: {selfGranted: false}})
+    await product.addCategory(category.item, {through: {selfGranted: false}})
+    
+    const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!category) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении категории`)
     }
     
-    return category
-  }
+    return {item:result.item}
+  })
   
-  static async destroyCategory(data?: {
+  static destroyCategory = createSlice<{
+    item:IProduct
+  },{
     productId: number,
     categoryId: number
-  }, options?: TransactionOptionsType): Promise<number> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     
-    const category = await categoryService.get({id: data.categoryId}, {transaction})
+    const category = await categoryService.get({data:{id: data.categoryId}, options:{transaction}})
     
-    await product.removeCategory(category, {transaction: transaction.data})
+    await product.removeCategory(category.item, {transaction: transaction.data})
+    
+    const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!product) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении категории`)
     }
     
-    return 1
-  }
+    return {item:result.item}
+  })
   
-  static async addSpecification(data?: {
+  static addSpecification = createSlice<{
+    item:IProduct
+  },{
     productId: number,
     specificationId: number,
     valueId: number
-  }, options?: TransactionOptionsType): Promise<CategoryI> {
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
-    
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
-    const specification = await specificationService.get({id: data.specificationId}, {transaction})
-    const value = await valueService.get({id: data.valueId}, {transaction})
+    const specification = await specificationService.get({data:{id: data.specificationId}, options:{transaction}})
+    const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
+    await product.addSpecification(specification.item, { through: { value:value.item.dataValues.value }})
     
-    await product.addSpecification(specification, {through: {selfGranted: false}})
-    await product.addValue(value, {through: {selfGranted: false}})
+    const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!specification || !value) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении характеристики`)
     }
     
-    return specification
-  }
+    return {item:result.item}
+  })
   
-  static async destroySpecification(data?: {
+  static destroySpecification = createSlice<{
+    item:IProduct
+  },{
     productId: number,
     specificationId: number,
-    typeId: number
-  }, options?: TransactionOptionsType): Promise<number> {
+    valueId: number
+  }>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     
-    const specification = await specificationService.get({id: data.specificationId}, {transaction})
-    const type = await typeService.get({id: data.typeId}, {transaction})
+    const specification = await specificationService.get({data:{id: data.specificationId}, options:{transaction}})
+    const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
     
-    await product.removeSpecification(specification, {transaction: transaction.data})
-    await product.removeType(type, {transaction: transaction.data})
+    await product.removeSpecification(specification.item, {transaction: transaction.data})
+    await product.removeType(value.item, {transaction: transaction.data})
+    
+    const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!product) {
       await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении характеристики`)
     }
     
-    return 1
-  }
+    return {item:result.item}
+  })
   
-  static async count(queries: any, options?: TransactionOptionsType): Promise<{ count: number }> {
+  static count = createSlice<{ count: number }>(async ({queries, options}) => {
     const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
     
-    const count = await userModel.count({
+    const count = await productModel.count({
       where: {
-        ...queries.searched
+        ...normalizeQueries.searched
       },
       raw: true,
       transaction: transaction.data,
-      order: queries.order
+      order: normalizeQueries.order
     })
     
     return {
       count
     }
-  }
+  })
   
 }
 

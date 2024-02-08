@@ -7,7 +7,9 @@ const Router = require('express');
 const router = new Router();
 
 router.post('/', accessMiddleWare(200), valueController.create) // Создание значения
-router.get('/', accessMiddleWare(200), valueController.get) // Получение значения
+router.get('/', accessMiddleWare(200), valueController.gets) // Получение значений
+router.put('', accessMiddleWare(200), valueController.update) // Изменение значения
+router.delete('', accessMiddleWare(200), valueController.destroy) // Удаление значения
 
 module.exports = router
 export {}

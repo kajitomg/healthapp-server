@@ -4,12 +4,12 @@ const router = new Router();
 const authMiddleWare = require('../middlewares/auth-middleware')
 const accessMiddleWare = require('../middlewares/access-middleware')
 
-router.post('', accessMiddleWare(100), userController.create) // Создание аккаунта
-router.get('', authMiddleWare, userController.gets) // Получение аккаунтов
+router.post('', userController.create) // Создание аккаунта
+router.get('', userController.gets) // Получение аккаунтов
 router.put('', accessMiddleWare(200), userController.update) // Обновление данных аккаунта
 router.delete('', accessMiddleWare(200), userController.destroy) // Удаление аккаунта
 
-router.post('/signup', accessMiddleWare(300), userController.registration) // Регистрация аккаунта
+router.post('/signup', userController.registration) // Регистрация аккаунта
 router.post('/signin', userController.login) // Авторизация аккаунта
 router.post('/signout', userController.logout) // Выход из аккаунта
 

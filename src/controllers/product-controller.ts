@@ -3,17 +3,20 @@ import {DTOService} from "../services/dto";
 import {productService} from "../services/product";
 import {NextFunction, Request, Response} from "express";
 import controllerWrapper from "../helpers/controller-wrapper";
+import {createDTO} from "../helpers/create-dto";
+import {IProduct} from "../models/product/product-model";
 
 
 class productController {
   
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<IProduct, keyof Pick<IProduct, 'name' | 'imageId' | 'article' | 'description' | 'discount' | 'price'>>(req.body,['description','article','name','price','imageId','discount'])
+      const queries = req.query
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.create(DTOService.product(data), {transaction})
+          return await productService.create({data:props,queries,options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при создании продукта`, error)
       )
@@ -30,7 +33,24 @@ class productController {
       
       const products = await controllerWrapper(
         async (transaction) => {
-          return await productService.gets(queries, {transaction})
+          return await productService.gets({queries, options:{transaction}})
+        },
+        (error) => ApiError.BadRequest(`Ошибка при получении продуктов`, error)
+      )
+      
+      return res.status(200).json(products)
+    } catch (e) {
+      next(e)
+    }
+  }
+  
+  static async get(req: Request, res: Response, next: NextFunction) {
+    try {
+      const queries = req.query
+      
+      const products = await controllerWrapper(
+        async (transaction) => {
+          return await productService.get({queries:req.params, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении продуктов`, error)
       )
@@ -43,11 +63,11 @@ class productController {
   
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
-      
+      const props = createDTO<IProduct, keyof Pick<IProduct, 'id' | 'name' | 'price' | 'discount' | 'article' | 'description'>>(req.body,['id', 'name', 'price', 'discount', 'article', 'description'])
+
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.update(DTOService.product(data), {transaction})
+          return await productService.update({data:props,options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при обновлении продукта`, error)
       )
@@ -60,11 +80,12 @@ class productController {
   
   static async destroy(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<IProduct, keyof Pick<IProduct,'id'>>(req.body,['id'])
+      const queries = req.query
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.destroy(data, {transaction})
+          return await productService.destroy({data:props,queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении продукта`, error)
       )
@@ -77,11 +98,11 @@ class productController {
   
   static async images(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<IProduct, keyof Pick<IProduct,'id'>>(req.body,['id'])
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.images(data, {transaction})
+          return await productService.images({data:props, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении изображений`, error)
       )
@@ -94,11 +115,11 @@ class productController {
   
   static async documents(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<IProduct, keyof Pick<IProduct,'id'>>(req.body,['id'])
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.documents(data, {transaction})
+          return await productService.documents({data:props, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении документов`, error)
       )
@@ -111,11 +132,11 @@ class productController {
   
   static async categories(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<IProduct, keyof Pick<IProduct,'id'>>(req.body,['id'])
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.categories(data, {transaction})
+          return await productService.categories({data:props, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении категорий`, error)
       )
@@ -128,11 +149,11 @@ class productController {
   
   static async specifications(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const props = createDTO<IProduct, keyof Pick<IProduct,'id'>>(req.body,['id'])
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.specifications(data, {transaction})
+          return await productService.specifications({data:props, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении характеристик`, error)
       )
@@ -145,11 +166,11 @@ class productController {
   
   static async addImage(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, imageId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.addImage(data, {transaction})
+          return await productService.addImage({data: {productId,imageId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при добавлении изображения`, error)
       )
@@ -162,11 +183,11 @@ class productController {
   
   static async destroyImage(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, imageId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.destroyImage(data, {transaction})
+          return await productService.destroyImage({data: {imageId,productId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении изображения`, error)
       )
@@ -179,11 +200,11 @@ class productController {
   
   static async addDocument(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, documentId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.addDocument(data, {transaction})
+          return await productService.addDocument({data: {documentId,productId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при добавлении документа`, error)
       )
@@ -196,11 +217,11 @@ class productController {
   
   static async destroyDocument(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, documentId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.destroyDocument(data, {transaction})
+          return await productService.destroyDocument({data: {productId,documentId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении документа`, error)
       )
@@ -213,11 +234,11 @@ class productController {
   
   static async addCategory(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, categoryId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.addCategory(data, {transaction})
+          return await productService.addCategory({data: {categoryId,productId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при добавлении категории`, error)
       )
@@ -230,11 +251,11 @@ class productController {
   
   static async destroyCategory(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, categoryId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.destroyCategory(data, {transaction})
+          return await productService.destroyCategory({data: {productId,categoryId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении категории`, error)
       )
@@ -247,11 +268,11 @@ class productController {
   
   static async addSpecification(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, specificationId, valueId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.addSpecification(data, {transaction})
+          return await productService.addSpecification({data: {specificationId,productId,valueId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при добавлении характеристики`, error)
       )
@@ -264,11 +285,11 @@ class productController {
   
   static async destroySpecification(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body
+      const {productId, specificationId, valueId} = req.body
       
       const product = await controllerWrapper(
         async (transaction) => {
-          return await productService.destroySpecification(data, {transaction})
+          return await productService.destroySpecification({data: {specificationId,productId,valueId}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении характеристики`, error)
       )

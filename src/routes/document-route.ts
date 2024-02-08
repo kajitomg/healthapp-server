@@ -7,8 +7,10 @@ const authMiddleWare = require('../middlewares/auth-middleware')
 const Router = require('express');
 const router = new Router();
 
-router.post('/', accessMiddleWare(200), FileloadService.upload('documents').single('document'), documentController.create) // Создание документа
-router.get('/', accessMiddleWare(200), documentController.get) // Получение документов
+router.post('', accessMiddleWare(200), FileloadService.upload('documents').single('document'), documentController.create) // Создание документа
+router.get('', accessMiddleWare(200), documentController.get) // Получение документов
+router.put('', accessMiddleWare(200), documentController.update) // Обновление документа
+router.delete('', accessMiddleWare(200), documentController.destroy) // Удаление документа
 
 module.exports = router
 export {}

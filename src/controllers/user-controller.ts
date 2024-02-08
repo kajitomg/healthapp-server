@@ -2,15 +2,18 @@ import {ApiError} from "../exceptions/api-error";
 import {userService} from "../services/user";
 import controllerWrapper from "../helpers/controller-wrapper";
 import {NextFunction, Request, Response} from "express";
+import {createDTO} from "../helpers/create-dto";
+import {IUser} from "../models/user/user-model";
 
 class userController {
   static async registration(req: Request, res: Response, next: NextFunction) {
     try {
-      const {email, password} = req.body
+      const props = createDTO<IUser,keyof Pick<IUser,'name'|'password'|'email'|'roleId'>>(req.body,['name','password','email','roleId'])
       
       const data = await controllerWrapper(
         async (transaction) => {
-          const data = await userService.registration(email, password, undefined, undefined, {transaction})
+
+          const data = await userService.registration({data:props,options:{transaction}})
           
           res.cookie('refreshToken', data.refreshToken, {
             maxAge: +process.env.JWT_REFRESH_AGE * 24 * 60 * 60 * 1000,
@@ -32,11 +35,13 @@ class userController {
   
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const {email, password, name, role} = req.body
+      const props = createDTO<IUser,keyof Pick<IUser,'name'|'password'|'email'|'roleId'>>(req.body,['name','password','email','roleId'])
+      const queries = req.query
       
       const data = await controllerWrapper(
         async (transaction) => {
-          return await userService.create(email, password, name, role, req.query, {transaction})
+          
+          return await userService.create({data:props, options:{transaction}, queries})
         },
         (error) => ApiError.BadRequest(`Ошибка при создании пользователя`, error)
       )
@@ -49,11 +54,11 @@ class userController {
   
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const {email, name} = req.body
+      const props = createDTO<IUser,'name' | 'email'>(req.body,['name','email'])
       
       const userData = await controllerWrapper(
         async (transaction) => {
-          return await userService.update(email, name, {transaction})
+          return await userService.update({data:props, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при обновлении пользователя`, error)
       )
@@ -66,11 +71,12 @@ class userController {
   
   static async destroy(req: Request, res: Response, next: NextFunction) {
     try {
-      const {id} = req.body
+      const props = createDTO<IUser,'id'>(req.body,['id'])
+      const queries = req.query
       
       const data = await controllerWrapper(
         async (transaction) => {
-          return await userService.destroy(id, req.query, {transaction})
+          return await userService.destroy({data:props,queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении пользователя`, error)
       )
@@ -83,11 +89,11 @@ class userController {
   
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const {email, password} = req.body
+      const props = createDTO<IUser,'email' | 'password'>(req.body,['email', 'password'])
       
       const data = await controllerWrapper(
         async (transaction) => {
-          const data = await userService.login(email, password, {transaction})
+          const data = await userService.login({data:props,options:{transaction}})
           
           res.cookie('refreshToken', data.refreshToken, {
             maxAge: +process.env.JWT_REFRESH_AGE * 24 * 60 * 60 * 1000,
@@ -109,11 +115,11 @@ class userController {
   
   static async adminLogin(req: Request, res: Response, next: NextFunction) {
     try {
-      const {email, password} = req.body
+      const props = createDTO<IUser,'email' | 'password'>(req.body,['email', 'password'])
       
       const data = await controllerWrapper(
         async (transaction) => {
-          const data = await userService.adminLogin(email, password, {transaction})
+          const data = await userService.adminLogin({data:props,options:{transaction}})
           
           res.cookie('refreshToken', data.refreshToken, {
             maxAge: +process.env.JWT_REFRESH_AGE * 24 * 60 * 60 * 1000,
@@ -140,7 +146,7 @@ class userController {
       
       const data = await controllerWrapper(
         async (transaction) => {
-          const data = await userService.logout(refreshToken, {transaction})
+          const data = await userService.logout({data:{refreshToken}, options:{transaction}})
           
           res.clearCookie('refreshToken')
           
@@ -161,7 +167,7 @@ class userController {
       
       await controllerWrapper(
         async (transaction) => {
-          await userService.activate(activateLink, {transaction})
+          await userService.activate({data:{activateLink}, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при активации аккаунта`, error)
       )
@@ -178,7 +184,7 @@ class userController {
       
       const data = await controllerWrapper(
         async (transaction) => {
-          const data = await userService.refresh(refreshToken, {transaction})
+          const data = await userService.refresh({data:{refreshToken}, options:{transaction}})
           
           res.cookie('refreshToken', data.refreshToken, {
             maxAge: +process.env.JWT_REFRESH_AGE * 24 * 60 * 60 * 1000,
@@ -204,7 +210,7 @@ class userController {
       
       const data = await controllerWrapper(
         async (transaction) => {
-          return await userService.gets(queries, {transaction})
+          return await userService.gets({queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при восстановлении доступа к аккаунту`, error)
       )

@@ -6,7 +6,8 @@ const Router = require('express');
 const router = new Router();
 
 router.post('', accessMiddleWare(200), productController.create) // Создание продукта
-router.get('', accessMiddleWare(200), productController.gets) // Получение продуктов
+router.get('', productController.gets) // Получение продуктов
+router.get('/:id', accessMiddleWare(200), productController.get) // Получение продукта по id
 router.put('', accessMiddleWare(200), productController.update) // Обновление продукта
 router.delete('', accessMiddleWare(200), productController.destroy) // Удаление продукта
 

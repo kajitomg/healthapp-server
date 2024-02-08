@@ -16,7 +16,7 @@ class FileloadService {
       destination: (req: Request, file, cb: Function) => {
         this.fileName = uuid.v4()
         const uploadsPath = this.generatePath(dir);
-        const expansion = file.originalname.split('.')[1]
+        const expansion = file.originalname.split('.')[file.originalname.split('.').length - 1]
         if (!fs.existsSync(uploadsPath)) {
           fs.mkdirSync(uploadsPath, {recursive: true});
         }
@@ -24,7 +24,8 @@ class FileloadService {
         cb(null, uploadsPath);
       },
       filename: (req: Request, file, cb: Function) => {
-        const expansion = file.originalname.split('.')[1]
+        const expansion = file.originalname.split('.')[file.originalname.split('.').length - 1]
+        
         cb(null, `${this.fileName}.${expansion}`);
       },
     })
