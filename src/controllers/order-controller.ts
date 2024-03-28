@@ -10,7 +10,7 @@ class orderController {
   
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const props = createDTO<IOrder, 'statusId' | 'customerId' | 'comment' | 'phonenumber' >(req.body,['comment','phonenumber','customerId','statusId'])
+      const props = createDTO<IOrder, 'statusId' | 'customerId' | 'comment' | 'phonenumber' | 'email' | 'products' >(req.body,['comment','phonenumber','email','customerId','statusId', 'products'])
       const queries = req.query
       
       const order = await controllerWrapper(
@@ -62,7 +62,7 @@ class orderController {
   
   static async destroy(req: Request, res: Response, next: NextFunction) {
     try {
-      const props = createDTO<IOrder, 'id'>(req.body,['id'])
+      const props = createDTO<{ id?:number }, 'id'>(req.params,['id'])
       const queries = req.query
       
       const order = await controllerWrapper(

@@ -30,7 +30,7 @@ class productController {
   static async gets(req: Request, res: Response, next: NextFunction) {
     try {
       const queries = req.query
-      
+
       const products = await controllerWrapper(
         async (transaction) => {
           return await productService.gets({queries, options:{transaction}})
@@ -44,13 +44,31 @@ class productController {
     }
   }
   
-  static async get(req: Request, res: Response, next: NextFunction) {
+  static async priceRange(req: Request, res: Response, next: NextFunction) {
     try {
       const queries = req.query
       
+      const range = await controllerWrapper(
+        async (transaction) => {
+          return await productService.getPriceRange({queries, options:{transaction}})
+        },
+        (error) => ApiError.BadRequest(`Ошибка при получении диапазона цен`, error)
+      )
+      
+      return res.status(200).json(range)
+    } catch (e) {
+      next(e)
+    }
+  }
+  
+  static async get(req: Request, res: Response, next: NextFunction) {
+    try {
+      const queries = req.query
+      const params = req.params
+      
       const products = await controllerWrapper(
         async (transaction) => {
-          return await productService.get({queries:req.params, options:{transaction}})
+          return await productService.get({data: params,queries:queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении продуктов`, error)
       )
@@ -63,7 +81,7 @@ class productController {
   
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const props = createDTO<IProduct, keyof Pick<IProduct, 'id' | 'name' | 'price' | 'discount' | 'article' | 'description'>>(req.body,['id', 'name', 'price', 'discount', 'article', 'description'])
+      const props = createDTO<IProduct, keyof Pick<IProduct, 'id' | 'name' | 'price' | 'discount' | 'article' | 'count' | 'description'>>(req.body,['id', 'name', 'price', 'discount', 'article', 'description', 'count'])
 
       const product = await controllerWrapper(
         async (transaction) => {

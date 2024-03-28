@@ -1,6 +1,7 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {
+  cartModel,
+  cartProductModel,
   categoryModel,
   documentModel,
   imageModel,
@@ -16,8 +17,8 @@ import {categoryService} from "../category";
 import {specificationService} from "../specification";
 import {valueService} from "../value";
 import createSlice from "../../helpers/create-slice";
+import {col, fn, literal, Op} from "sequelize";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class productService {
   
@@ -32,7 +33,6 @@ class productService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!product || !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании продукта`)
     }
     
@@ -44,18 +44,17 @@ class productService {
   
   static get = createSlice<{
     item:IProduct
-  },Pick<IProduct, 'id' | 'name'>>(async ({data, options}) => {
+  },Pick<IProduct, 'id' | 'name'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
 
     const result = await productModel.findOne({
       where:data,
-      include:
-        [imageModel, documentModel, specificationModel, categoryModel],
+      include:normalizeQueries.include,
       transaction: transaction.data}
     )
-    
+
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении продукта`)
     }
     
@@ -68,30 +67,84 @@ class productService {
   }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
-
-    const products = await productModel.findAll({
+    
+    const products = await productModel.findAndCountAll({
       where: {
-        ...normalizeQueries.searched
+        ...normalizeQueries.searched,
+        ...normalizeQueries.filter,
+        ...normalizeQueries.data
       },
+      distinct:true,
       raw: false,
-      include:
-        [imageModel, documentModel, specificationModel, categoryModel],
+      include: normalizeQueries.include,
       offset: normalizeQueries.offset,
       limit: normalizeQueries.limit,
       order: normalizeQueries.order,
       transaction: transaction.data
     })
-    console.log(products)
-    
-    const {count} = await this.count({queries, options:{transaction}})
     
     const result = {
-      list:products,
-      count
+      list:products.rows,
+      count:products.count
     }
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении продуктов`)
+    }
+    
+    return result
+  })
+  
+  static getPriceRange = createSlice<{
+    item: {
+      min:number,
+      max:number
+    }
+  }>(async ({queries, options}) => {
+    const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
+
+    const minPrice = await productModel.findOne({
+      include: normalizeQueries.include,
+      order: [
+        [fn('COALESCE', col('discount'), col('price')), 'ASC']
+      ],
+      where: {
+        ...normalizeQueries.searched,
+        ...normalizeQueries.filter,
+        ...normalizeQueries.data,
+        [Op.or]: [
+          { 'discount': { [Op.not]: null } },
+          { 'price': { [Op.not]: null } }
+        ]
+      },
+      attributes:['price','discount'],
+      transaction: transaction.data,
+    })
+    const maxPrice = await productModel.findOne({
+      include: normalizeQueries.include,
+      order: [
+        [fn('COALESCE', col('discount'), col('price')), 'DESC']
+      ],
+      where: {
+        ...normalizeQueries.searched,
+        ...normalizeQueries.filter,
+        ...normalizeQueries.data,
+        [Op.or]: [
+          { 'discount': { [Op.not]: null } },
+          { 'price': { [Op.not]: null } }
+        ]
+      },
+      attributes:['price','discount'],
+      transaction: transaction.data,
+    })
+    const result = {
+      item:{
+        min:+(await minPrice?.dataValues?.discount || await minPrice?.dataValues?.price) || 0,
+        max:+(await maxPrice?.dataValues?.discount || await maxPrice?.dataValues?.price) || 0
+      }
+    }
+    if (!result) {
+      throw ApiError.BadRequest(`Ошибка при получении диапазона цен`)
     }
     
     return result
@@ -99,9 +152,8 @@ class productService {
   
   static update = createSlice<{
     item:IProduct
-  },Pick<IProduct, 'id' | 'name' | 'price' | 'discount' | 'article' | 'description'>>(async ({data, options}) => {
+  },Pick<IProduct, 'id' | 'name' | 'price' | 'discount' | 'article' | 'count' | 'description'>>(async ({data, options}) => {
     const transaction = options?.transaction
-    
     const product = await productModel.findOne({where: {id:data.id}, transaction: transaction.data})
     
     await product.update(data,{transaction: transaction.data})
@@ -109,7 +161,6 @@ class productService {
     const result = await this.get({data:{id:data.id},options:{transaction}})
     
     if (!product) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении продукта`)
     }
     
@@ -148,7 +199,6 @@ class productService {
     const result = await productModel.findOne({where: data, include: imageModel, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении изображений продукта`)
     }
     
@@ -165,7 +215,6 @@ class productService {
     const result = await productModel.findOne({where: data, include: documentModel, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении документов продукта`)
     }
     
@@ -182,7 +231,6 @@ class productService {
     const result = await productModel.findOne({where: data, include: categoryModel, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении категорий продукта`)
     }
     
@@ -203,7 +251,6 @@ class productService {
     })
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении характеристик продукта`)
     }
     
@@ -228,7 +275,6 @@ class productService {
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!image) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении изображения`)
     }
     
@@ -250,7 +296,6 @@ class productService {
     await imageService.destroy({data:{id: image.item.dataValues.id}, options:{transaction}})
     
     if (!product) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении изображения`)
     }
     
@@ -273,7 +318,6 @@ class productService {
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!document) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении документа`)
     }
     
@@ -295,7 +339,6 @@ class productService {
     await documentService.destroy({data:{id: document.item.dataValues.id}, options:{transaction}})
     
     if (!product) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении документа`)
     }
     
@@ -309,7 +352,7 @@ class productService {
     categoryId: number
   }>(async ({data, options}) => {
     const transaction = options?.transaction
-    
+    console.log(data)
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     const category = await categoryService.get({data:{id: data.categoryId}, options:{transaction}})
     
@@ -318,7 +361,6 @@ class productService {
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!category) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении категории`)
     }
     
@@ -342,7 +384,6 @@ class productService {
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!product) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении категории`)
     }
     
@@ -365,7 +406,6 @@ class productService {
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!specification || !value) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении характеристики`)
     }
     
@@ -392,7 +432,6 @@ class productService {
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
     if (!product) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении характеристики`)
     }
     

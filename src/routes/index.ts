@@ -12,6 +12,9 @@ const valueRouter = require('./value-route')
 const typeRouter = require('./type-route')
 const orderRouter = require('./order-route')
 const statusRouter = require('./status-route')
+const levelRouter = require('./level-route')
+const cartRouter = require('./cart-route')
+const likeRouter = require('./like-route')
 
 router.use('/users', userRouter)
 router.use('/roles', roleRouter)
@@ -24,6 +27,9 @@ router.use('/values', valueRouter)
 router.use('/types', typeRouter)
 router.use('/orders', orderRouter)
 router.use('/statuses', statusRouter)
+router.use('/levels', levelRouter)
+router.use('/carts', cartRouter)
+router.use('/likes', likeRouter)
 
 module.exports = router
 export {}

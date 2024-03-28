@@ -1,10 +1,8 @@
 import {roleModel} from "../../models";
 import {IRole} from "../../models/user/role-model";
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import createSlice from "../../helpers/create-slice";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class roleService {
   static create = createSlice<IRole,Pick<IRole, 'name' | 'level'>>(async ({data, options}) => {
@@ -27,7 +25,6 @@ class roleService {
     const roleData = await roleModel.findOne({where: data, transaction: transaction.data})
     
     if (!roleData) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Роли не существует`)
     }
     
@@ -39,7 +36,6 @@ class roleService {
     
     const roleData = await roleModel.findOne({where: data, transaction: transaction.data})
     if (!roleData) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Роли не существует`)
     }
     
@@ -51,7 +47,6 @@ class roleService {
     
     const roleData = await roleModel.findAll()
     if (!roleData) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Роли не существует`)
     }
     

@@ -10,7 +10,7 @@ class categoryController {
   
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const props = createDTO<ICategory,'name'>(req.body,['name'])
+      const props = createDTO<ICategory,'name' | 'levelId'>(req.body,['name', "levelId"])
       const queries = req.query
       
       const category = await controllerWrapper(
@@ -28,12 +28,31 @@ class categoryController {
   static async gets(req: Request, res: Response, next: NextFunction) {
     try {
       const queries = req.query
-      
+
       const categories = await controllerWrapper(
         async (transaction) => {
           return await categoryService.gets({queries, options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при получении категорий`, error)
+      )
+      
+      return res.status(200).json(categories)
+    } catch (e) {
+      next(e)
+    }
+  }
+  
+  static async get(req: Request, res: Response, next: NextFunction) {
+    try {
+      const queries = req.query
+      const params = req.params
+      
+      
+      const categories = await controllerWrapper(
+        async (transaction) => {
+          return await categoryService.get({data:params,queries, options:{transaction}})
+        },
+        (error) => ApiError.BadRequest(`Ошибка при получении категории`, error)
       )
       
       return res.status(200).json(categories)
@@ -66,6 +85,23 @@ class categoryController {
       const category = await controllerWrapper(
         async (transaction) => {
           return await categoryService.destroy({data:props, queries,options:{transaction}})
+        },
+        (error) => ApiError.BadRequest(`Ошибка при удалении категории`, error)
+      )
+      return res.status(200).json(category)
+    } catch (e) {
+      next(e)
+    }
+  }
+  
+  static async addChildren(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { parentId,childrenId } = req.body
+      const queries = req.query
+      
+      const category = await controllerWrapper(
+        async (transaction) => {
+          return await categoryService.addChildren({data:{ parentId,childrenId }, queries,options:{transaction}})
         },
         (error) => ApiError.BadRequest(`Ошибка при удалении категории`, error)
       )

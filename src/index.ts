@@ -1,3 +1,5 @@
+import * as http2 from "http2";
+
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
@@ -15,7 +17,7 @@ const app = express()
 
 app.use(cors({
 	credentials: true,
-	origin: process.env.CLIENT_URL,
+	origin: process.env.CLIENT_PROD_URL,
 }))
 app.use(express.static('uploads'));
 app.use(bodyParser())
@@ -30,6 +32,7 @@ const PORT = +process.env.PORT || 5000
 const run = () => {
 	try {
 		DBService.postgres.start()
+		
 		app.listen(PORT, () => console.log(`Server has been started on ${PORT} port`))
 	}
 	catch (e) {

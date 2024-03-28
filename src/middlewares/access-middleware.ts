@@ -22,7 +22,7 @@ module.exports = (level) => {
       
       const userData = await tokenService.validateAccessToken({data:{token:accessToken}, options:{transaction}})
       if (!userData) throw next(ApiError.UnauthorizedError())
-      
+
       const roleData = await roleService.getOneById({data:{id:userData.roleId}, options:{transaction}})
       if (roleData.level > level) {
         throw await next(ApiError.BadRequest('Нет доступа'))

@@ -45,7 +45,7 @@ class specificationController {
   
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const props = createDTO<ISpecification, keyof Pick<ISpecification, 'typeId' | 'basic' | 'name' | 'categoryId'>>(req.body,['typeId', 'categoryId', 'basic', 'name'])
+      const props = createDTO<ISpecification, keyof Pick<ISpecification, 'id' | 'typeId' | 'basic' | 'name' | 'categoryId'>>(req.body,['id', 'typeId', 'categoryId', 'basic', 'name'])
       
       const specification = await controllerWrapper(
         async (transaction) => {

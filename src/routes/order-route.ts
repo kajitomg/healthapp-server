@@ -6,10 +6,10 @@ const authMiddleWare = require('../middlewares/auth-middleware')
 const Router = require('express');
 const router: IRouter = new Router();
 
-router.post('', accessMiddleWare(200), orderController.create) // Создание заказа
-router.get('', accessMiddleWare(200), orderController.gets) // Получение заказов
-router.put('', accessMiddleWare(200), orderController.update) // Изменение заказа
-router.delete('', accessMiddleWare(200), orderController.destroy) // Удаление заказа
+router.post('', authMiddleWare, orderController.create) // Создание заказа
+router.get('', authMiddleWare, orderController.gets) // Получение заказов
+router.put('/:id', authMiddleWare, orderController.update) // Изменение заказа
+router.delete('/:id', authMiddleWare, orderController.destroy) // Удаление заказа
 
 module.exports = router
 export {}

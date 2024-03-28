@@ -6,7 +6,9 @@ const accessMiddleWare = require('../middlewares/access-middleware')
 
 router.post('', userController.create) // Создание аккаунта
 router.get('', userController.gets) // Получение аккаунтов
-router.put('', accessMiddleWare(200), userController.update) // Обновление данных аккаунта
+router.put('/:id', authMiddleWare, userController.update) // Обновление данных аккаунта
+router.put('/email/:id', authMiddleWare, userController.updateEmail) // Обновление почты аккаунта
+router.put('/password/:id', authMiddleWare, userController.updatePassword) // Обновление пароля аккаунта
 router.delete('', accessMiddleWare(200), userController.destroy) // Удаление аккаунта
 
 router.post('/signup', userController.registration) // Регистрация аккаунта

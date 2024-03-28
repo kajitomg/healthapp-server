@@ -1,11 +1,9 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {typeModel} from "../../models";
 import {IType} from "../../models/product/type-model";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class typeService {
   
@@ -20,7 +18,6 @@ class typeService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!result || !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании типа`)
     }
     
@@ -39,7 +36,6 @@ class typeService {
     const result = await typeModel.findAll({where: data, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении типа`)
     }
     
@@ -55,10 +51,11 @@ class typeService {
   }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
-    
+
     const types = await typeModel.findAll({
       where: {
-        ...normalizeQueries.searched
+        ...normalizeQueries.searched,
+        ...normalizeQueries.data
       },
       raw: true,
       offset: normalizeQueries.offset,
@@ -75,7 +72,6 @@ class typeService {
       count
     }
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении категории`)
     }
     
@@ -92,7 +88,6 @@ class typeService {
     await result.update(data,{transaction:transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении типа`)
     }
     
@@ -112,7 +107,6 @@ class typeService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!result || !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении типа`)
     }
     

@@ -1,11 +1,9 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import queriesNormalize from "../../helpers/queries-normalize";
 import {IStatus} from "../../models/order/status-model";
 import {statusModel} from "../../models";
 import createSlice from "../../helpers/create-slice";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class statusService {
   
@@ -20,7 +18,6 @@ class statusService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!status|| !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании статуса`)
     }
     
@@ -32,20 +29,18 @@ class statusService {
   
   static get = createSlice<{
   item:IStatus
-},Pick<IStatus, 'value' | 'id'>>(async ({data, options}) => {
+},Partial<Pick<IStatus, 'value' | 'id'>>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await statusModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении статуса`)
     }
     
     return {
       item:result
     }
-    
   })
   
   static gets = createSlice<{
@@ -74,7 +69,6 @@ class statusService {
       count
     }
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении статусов`)
     }
     
@@ -89,7 +83,6 @@ class statusService {
     const status = await statusModel.update(data, {where: {id: data.id}, transaction: transaction.data})
     
     if (!status) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении статуса`)
     }
     

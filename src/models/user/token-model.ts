@@ -14,7 +14,7 @@ interface IToken extends Model<InferAttributes<IToken>, InferCreationAttributes<
 
 const tokenModel: IToken = sequelize.define('token', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
-  refresh: {type: DataTypes.STRING},
+  refresh: {type: DataTypes.STRING(1000)},
 })
 
 export {tokenModel, IToken}

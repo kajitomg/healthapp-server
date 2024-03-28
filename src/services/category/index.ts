@@ -1,26 +1,26 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {categoryModel, imageModel} from "../../models";
 import {ICategory} from "../../models/product/category-model";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
+import {levelModel} from "../../models/product/level-model";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class categoryService {
   
   static create = createSlice<{
     item:ICategory,
     count:number
-  },Pick<ICategory, 'name'>>(async ({data,queries, options}) => {
+  },Pick<ICategory, 'name' | 'levelId'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
-
+    if(!data.levelId){
+      data.levelId = 1
+    }
     const result = await categoryModel.create(data, {transaction: transaction.data})
     
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!result || !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании категории`)
     }
     
@@ -32,13 +32,16 @@ class categoryService {
   
   static get = createSlice<{
     item:ICategory
-  },{ id?: number, name?: string }>(async ({data, options}) => {
+  },{ id?: number, name?: string }>(async ({data, queries, options}) => {
     const transaction = options?.transaction
+    const normalizeQueries = queriesNormalize(queries)
     
-    const result = await categoryModel.findOne({where: data, transaction: transaction.data})
-    
+    const result = await categoryModel.findOne({
+      ...(data && {where: data}),
+      include:normalizeQueries.include,
+      transaction: transaction.data
+    })
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении категории`)
     }
     
@@ -54,26 +57,24 @@ class categoryService {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
     
-    const categories = await categoryModel.findAll({
+    const categories = await categoryModel.findAndCountAll({
       where: {
-        ...normalizeQueries.searched
+        ...normalizeQueries.searched,
+        ...(queries?.levelId && {levelId:queries?.levelId}),
       },
-      raw: true,
+      include: normalizeQueries.include,
+      distinct:true,
       offset: normalizeQueries.offset,
       limit: normalizeQueries.limit,
       order: normalizeQueries.order,
       transaction: transaction.data
     })
     
-    
-    const {count} = await this.count({queries, options:{transaction}})
-    
     const result = {
-      list:categories,
-      count
+      list:categories.rows,
+      count:categories.count
     }
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении категории`)
     }
     
@@ -90,7 +91,6 @@ class categoryService {
     await result.update(data,{transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении категории`)
     }
     
@@ -98,6 +98,26 @@ class categoryService {
       item: result
     }
   })
+  
+  static addChildren = createSlice<{
+    count:number
+  }, { parentId:number,childrenId:number }>(async ({data,queries,options}) => {
+    const transaction = options?.transaction
+    console.log(data)
+    const categoryParent = await categoryModel.findOne({where: {id:data.parentId}, transaction: transaction.data})
+    const categoryChildren = await categoryModel.findOne({where: {id:data.childrenId}, transaction: transaction.data})
+    
+    if(categoryChildren.dataValues.levelId <= categoryParent.dataValues.levelId){
+      throw ApiError.BadRequest(`Уровень children выше или равно parent`)
+    }
+
+    await categoryParent.addChildren(categoryChildren,{through: {selfGranted: false}})
+    
+    const {count} = await this.count({queries, options:{transaction}})
+    
+    return {count}
+  })
+  
   
   static destroy = createSlice<{
     count:number
@@ -125,7 +145,6 @@ class categoryService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!categories) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении изображений`)
     }
     

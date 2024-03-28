@@ -2,6 +2,7 @@ import {ApiError} from "../exceptions/api-error";
 import multer from "multer"
 
 module.exports = (err, req, res, next) => {
+  
   if (err instanceof multer.MulterError) {
     return res.status(err.status).json({message: err.message, errors: err.errors})
   }

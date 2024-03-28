@@ -1,4 +1,8 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
+import {ICartProduct} from "../cart/cart-product-model";
+import {ILikeProduct} from "../like/like-product-model";
+import {ICart} from "../cart/cart-model";
+import {ILike} from "../like/like-model";
 
 const {DBService} = require('../../services/db');
 const {DataTypes} = require('sequelize')
@@ -12,7 +16,12 @@ interface IProduct extends Model<InferAttributes<IProduct>, InferCreationAttribu
   price?: number,
   discount?: number,
   description?: string,
-  imageId?: CreationOptional<number>
+  imageId?: CreationOptional<number>,
+  count?: number,
+  'cart-product':ICartProduct,
+  'like-product':ILikeProduct,
+  carts:ICart,
+  likes:ILike
 }
 
 const productModel: IProduct = sequelize.define('product', {
@@ -22,6 +31,7 @@ const productModel: IProduct = sequelize.define('product', {
   price: {type: DataTypes.INTEGER},
   discount: {type: DataTypes.INTEGER},
   description: {type: DataTypes.STRING},
+  count: {type:DataTypes.INTEGER}
 })
 
 export {productModel, IProduct}

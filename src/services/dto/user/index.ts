@@ -5,12 +5,14 @@ class userDTO {
   public name:string
   public email:string
   public roleId:number
+  public phonenumber:string
   
   constructor(user:IUser) {
     this.id = user.id
     this.name = user.name
     this.email = user.email
     this.roleId = user.roleId
+    this.phonenumber = user.phonenumber
   }
 }
 

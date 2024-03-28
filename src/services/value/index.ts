@@ -1,11 +1,9 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {valueModel} from "../../models";
 import {IValue} from "../../models/product/value-model";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class valueService {
   
@@ -19,7 +17,6 @@ class valueService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!result || !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании значения`)
     }
     return {
@@ -37,7 +34,6 @@ class valueService {
     const result = await valueModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении значения`)
     }
     
@@ -73,7 +69,6 @@ class valueService {
       count
     }
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении знаечний`)
     }
     
@@ -88,7 +83,6 @@ class valueService {
     const result = await valueModel.update(data, {where: {id: data.id}, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении значения`)
     }
     
@@ -108,7 +102,6 @@ class valueService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении значения`)
     }
     

@@ -11,6 +11,7 @@ interface IUser extends Model<InferAttributes<IUser>, InferCreationAttributes<IU
   name: string,
   email: string,
   password: string,
+  phonenumber: string,
   roleId: number,
 }
 
@@ -20,6 +21,11 @@ const userModel: IUser = sequelize.define('user', {
   email: {
     type: DataTypes.STRING, unique: true, allowNull: false, validate: {
       isEmail: true
+    }
+  },
+  phonenumber: {
+    type: DataTypes.STRING, unique: true, validate: {
+      is: /^\+?[78][\s]?[-\(]?[\s]?\d{3}?\)?[\s]?-?\d{3}?-?\d{2}?-?\d{2}?$/
     }
   },
   password: {type: DataTypes.STRING, allowNull: false}

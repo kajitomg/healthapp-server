@@ -1,11 +1,9 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {documentModel} from "../../models";
 import {IDocument} from "../../models/document/document-model";
 import destroyFile from "../../helpers/destroy-file";
 import createSlice from "../../helpers/create-slice";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class documentService {
   
@@ -17,7 +15,6 @@ class documentService {
     const result = await documentModel.create(data, {transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении документа`)
     }
     
@@ -36,7 +33,6 @@ class documentService {
     await document.update(data,{transaction: transaction.data})
     
     if (!document) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении документа`)
     }
     
@@ -53,7 +49,6 @@ class documentService {
     const result = await documentModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении документа`)
     }
     
@@ -71,7 +66,6 @@ class documentService {
     const document = await result.destroy({transaction: transaction.data})
     
     if (!document) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении документа`)
     }
     destroyFile([destroyData])

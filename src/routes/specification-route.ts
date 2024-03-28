@@ -7,7 +7,7 @@ const Router = require('express');
 const router: IRouter = new Router();
 
 router.post('', accessMiddleWare(200), specificationController.create) // Создание характеристики
-router.get('', accessMiddleWare(200), specificationController.gets) // Получение характеристик
+router.get('', authMiddleWare, specificationController.gets) // Получение характеристик
 router.put('', accessMiddleWare(200), specificationController.update) // Изменение характеристики
 router.delete('', accessMiddleWare(200), specificationController.destroy) // Удаление характеристики
 

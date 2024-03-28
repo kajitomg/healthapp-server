@@ -1,12 +1,10 @@
- import mailService from "../mail";
+import mailService from "../mail";
 import {authDataModel} from "../../models";
 import {userService} from "../user";
 import {IAuthData} from "../../models/user/auth-data-model";
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
- import createSlice from "../../helpers/create-slice";
+import createSlice from "../../helpers/create-slice";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class authDataService {
   
@@ -22,10 +20,25 @@ class authDataService {
     
     const authdata = await authDataModel.create({userId:data.userId, mailAuthId: mailAuth.item.id}, {transaction: transaction.data})
     if (!authdata) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
     return authdata
+    
+  })
+  
+  static get = createSlice<{
+    item:IAuthData
+  },{userId: number}>(async ({data, options}) => {
+    const transaction = options?.transaction
+    
+    const authdata = await authDataModel.findOne({where:{userId:data.userId},transaction: transaction.data})
+    
+    if (!authdata) {
+      throw ApiError.BadRequest(`Ошибка при поиске данных авторизации`)
+    }
+    return {
+      item:authdata
+    }
     
   })
   
@@ -38,7 +51,6 @@ class authDataService {
     authdata = await authDataModel.destroy({where: data, transaction: transaction.data})
     
     if (!authdata && !mailAuth) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении пользователя`)
     }
     

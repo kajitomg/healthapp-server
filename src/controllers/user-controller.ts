@@ -8,7 +8,7 @@ import {IUser} from "../models/user/user-model";
 class userController {
   static async registration(req: Request, res: Response, next: NextFunction) {
     try {
-      const props = createDTO<IUser,keyof Pick<IUser,'name'|'password'|'email'|'roleId'>>(req.body,['name','password','email','roleId'])
+      const props = createDTO<IUser,keyof Pick<IUser,'name'|'password'|'email'>>(req.body,['name','password','email'])
       
       const data = await controllerWrapper(
         async (transaction) => {
@@ -54,13 +54,62 @@ class userController {
   
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const props = createDTO<IUser,'name' | 'email'>(req.body,['name','email'])
+      const props = createDTO<IUser,'name' | 'phonenumber'>(req.body,['name','phonenumber'])
+      const params = createDTO<{ id?:number },'id'>(req.params,['id'])
+     
+      const userData = await controllerWrapper(
+        async (transaction) => {
+          //@ts-ignore
+          if(params.id !== req.user.id){
+            ApiError.BadRequest(`Нет доступа`)
+          }
+          return await userService.update({data:{...props,...params}, options:{transaction}})
+        },
+        (error) => ApiError.BadRequest(`Ошибка при обновлении пользователя`, error)
+      )
+      
+      return res.status(200).json(userData)
+    } catch (e) {
+      next(e)
+    }
+  }
+  
+  static async updatePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const props = createDTO<IUser & {currentPassword?:string},'password' | 'currentPassword'>(req.body,['password','currentPassword'])
+      const params = createDTO<{ id?:number },'id'>(req.params,['id'])
       
       const userData = await controllerWrapper(
         async (transaction) => {
-          return await userService.update({data:props, options:{transaction}})
+          //@ts-ignore
+          if(params.id !== req.user.id){
+            ApiError.BadRequest(`Нет доступа`)
+          }
+          return await userService.updatePassword({data:{...props,...params}, options:{transaction}})
         },
-        (error) => ApiError.BadRequest(`Ошибка при обновлении пользователя`, error)
+        (error) => ApiError.BadRequest(`Ошибка при обновлении пароля пользователя`, error)
+      )
+      
+      return res.status(200).json(userData)
+    } catch (e) {
+      next(e)
+    }
+  }
+  
+  static async updateEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const props = createDTO<IUser,'email'>(req.body,['email'])
+      const params = createDTO<{ id?:number },'id'>(req.params,['id'])
+      
+      const userData = await controllerWrapper(
+        async (transaction) => {
+          //@ts-ignore
+          if(params.id !== req.user.id){
+            ApiError.BadRequest(`Нет доступа`)
+          }
+          return await userService.updateEmail({data:{...props,...params}, options:{transaction}})
+        },
+        (error) => ApiError.BadRequest(`Ошибка при обновлении почты пользователя`, error)
       )
       
       return res.status(200).json(userData)
@@ -106,7 +155,6 @@ class userController {
         },
         (error) => ApiError.BadRequest(`Ошибка при авторизации пользователя`, error)
       )
-      
       return res.status(200).json(data)
     } catch (e) {
       next(e)

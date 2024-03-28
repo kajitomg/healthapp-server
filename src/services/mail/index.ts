@@ -2,13 +2,11 @@ import createSlice from "../../helpers/create-slice";
 
 require('dotenv').config()
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {IMailAuth} from "../../models/user/mail-auth-model";
 
 const uuid = require('uuid')
 const {mailAuthModel} = require('../../models');
 const nodemailer = require('nodemailer')
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class mailService {
   public transporter
@@ -33,8 +31,21 @@ class mailService {
     const url = uuid.v4()
     const mailauth = await mailAuthModel.create({url}, {transaction: transaction.data})
     if (!mailauth) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
+    }
+    return {item:mailauth}
+    
+  })
+  
+  get = createSlice<{
+    item:IMailAuth
+  },Pick<IMailAuth, 'id'>>(async ({data,options}) => {
+    const transaction = options?.transaction
+    
+    const url = uuid.v4()
+    const mailauth = await mailAuthModel.findOne({where:{id:data.id},transaction: transaction.data})
+    if (!mailauth) {
+      throw ApiError.BadRequest(`Ошибка при поиске авторизации почты`)
     }
     return {item:mailauth}
     
@@ -59,7 +70,6 @@ class mailService {
 						`
       })
     } catch (error) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest('Несуществующий email', [error])
     }
   })
@@ -69,7 +79,6 @@ class mailService {
     
     const mailauth = await mailAuthModel.destroy({where: data, transaction: transaction.data})
     if (!mailauth) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении пользователя`)
     }
     return 1

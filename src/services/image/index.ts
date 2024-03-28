@@ -1,11 +1,9 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {imageModel} from "../../models";
 import {IImage} from "../../models/image/image-model";
 import createSlice from "../../helpers/create-slice";
 import destroyFile from "../../helpers/destroy-file";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class imageService {
   
@@ -17,7 +15,6 @@ class imageService {
     const result = await imageModel.create(data, {transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении изображения`)
     }
     
@@ -32,7 +29,6 @@ class imageService {
     const result = await imageModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении изображений`)
     }
     
@@ -51,7 +47,6 @@ class imageService {
     await image.update(data,{transaction: transaction.data})
     
     if (!image) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении изображения`)
     }
     
@@ -69,7 +64,6 @@ class imageService {
     await result.destroy({transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при удалении изображения`)
     }
     

@@ -9,10 +9,12 @@ interface IOrderProduct extends Model<InferAttributes<IOrderProduct>, InferCreat
   id: CreationOptional<number>;
   orderId: CreationOptional<number>;
   productId: CreationOptional<number>;
+  count:number
 }
 
 const orderProductModel: IOrderProduct = sequelize.define('order-product', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
+  count:{type:DataTypes.INTEGER}
 })
 
 export {orderProductModel, IOrderProduct}

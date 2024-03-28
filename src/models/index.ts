@@ -1,5 +1,9 @@
-import {categoryChildrenModel} from "./product/category-children-model";
-
+const {orderCustomerModel} =  require('./order/order-customer-model');
+const {likeProductModel} = require('./like/like-product-model');
+const {cartProductModel} = require('./cart/cart-product-model');
+const {categoryChildrenModel} = require('./product/category-children-model');
+const {likeModel} = require('./like/like-model');
+const {cartModel} = require('./cart/cart-model');
 const {levelModel} = require('./product/level-model');
 const {userModel} = require('./user/user-model')
 const {authDataModel} = require('./user/auth-data-model')
@@ -45,8 +49,8 @@ categoryModel.belongsTo(levelModel)
 categoryModel.hasOne(specificationModel)
 specificationModel.belongsTo(categoryModel) // Связь категории с характеристикой, с ссылкой в характеристике
 
-categoryModel.belongsToMany(categoryModel, {through: categoryChildrenModel,foreignKey: 'childrenId', as:'Children'})
-categoryModel.belongsToMany(categoryModel, {through: categoryChildrenModel,foreignKey:'parentId', as:'Parent'})
+categoryModel.belongsToMany(categoryModel, {through: categoryChildrenModel,foreignKey: 'childrenId', as:'parents'})
+categoryModel.belongsToMany(categoryModel, {through: categoryChildrenModel,foreignKey:'parentId', as:'childrens'})
 
 typeModel.hasMany(specificationModel)
 specificationModel.belongsTo(typeModel) // Связь типа с характеристикой, с ссылкой в характеристике
@@ -69,13 +73,38 @@ categoryModel.belongsToMany(productModel, {through: productCategoryModel}) // С
 productModel.belongsToMany(specificationModel, {through: productSpecificationModel})
 specificationModel.belongsToMany(productModel, {through: productSpecificationModel}) // Связь продукта с характеристикой, с ссылкой в связывающей таблице
 
+specificationModel.hasMany(productSpecificationModel)
+productSpecificationModel.belongsTo(specificationModel)
+
+//like
+
+userModel.hasMany(likeModel)
+likeModel.belongsTo(userModel)
+
+likeModel.belongsToMany(productModel, {through: likeProductModel})
+productModel.belongsToMany(likeModel, {through: likeProductModel})
+
+productModel.hasMany(likeProductModel)
+likeProductModel.belongsTo(productModel)
+
+//cart
+
+userModel.hasMany(cartModel)
+cartModel.belongsTo(userModel)
+
+cartModel.belongsToMany(productModel, {through: cartProductModel})
+productModel.belongsToMany(cartModel, {through: cartProductModel})
+
+productModel.hasMany(cartProductModel)
+cartProductModel.belongsTo(productModel)
+
 //order
 
 orderModel.belongsToMany(productModel, {through: orderProductModel})
 productModel.belongsToMany(orderModel, {through: orderProductModel})
 
-userModel.hasOne(orderModel,{as:'customer'})
-orderModel.belongsTo(userModel,{as:'customer'})
+userModel.belongsToMany(orderModel,{through:orderCustomerModel,foreignKey:'customerId', as:'userId'})
+orderModel.belongsToMany(userModel,{through:orderCustomerModel})
 
 statusModel.hasOne(orderModel)
 orderModel.belongsTo(statusModel)
@@ -88,6 +117,12 @@ export {
   tokenModel,
   categoryModel,
   productModel,
+  likeModel,
+  cartModel,
+  cartProductModel,
+  likeProductModel,
+  orderCustomerModel,
+  levelModel,
   orderModel,
   statusModel,
   orderProductModel,

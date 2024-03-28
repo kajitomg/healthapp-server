@@ -1,5 +1,4 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
 import {
   categoryModel,
   specificationModel,
@@ -11,7 +10,6 @@ import {valueService} from "../value";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class specificationService {
   
@@ -35,7 +33,6 @@ class specificationService {
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!specification|| !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании характеристики`)
     }
     
@@ -53,7 +50,6 @@ class specificationService {
     const result = await specificationModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении характеристики`)
     }
     
@@ -69,12 +65,15 @@ class specificationService {
   }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
-    
+
     const specifications = await specificationModel.findAll({
       where: {
-        ...normalizeQueries.searched
+        ...normalizeQueries.searched,
+        ...normalizeQueries.filter,
+        ...normalizeQueries.data
       },
-      raw: true,
+      raw: false,
+      include: normalizeQueries.include,
       offset: normalizeQueries.offset,
       limit: normalizeQueries.limit,
       order: normalizeQueries.order,
@@ -89,7 +88,6 @@ class specificationService {
       count
     }
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении характеристик`)
     }
     
@@ -98,9 +96,9 @@ class specificationService {
   
   static update = createSlice<{
     item:ISpecification
-  },Pick<ISpecification, 'id'|'name'|'typeId'|'categoryId'>>(async ({data, options}) => {
+  },Pick<ISpecification, 'id'|'name'| 'basic' |'typeId'|'categoryId'>>(async ({data, options}) => {
     const transaction = options?.transaction
-    
+
     const type = typeModel.findOne({where: {id: data.typeId}})
     if (!type) {
       delete data.typeId
@@ -113,7 +111,6 @@ class specificationService {
     const specification = await specificationModel.update(data, {where: {id: data.id}, transaction: transaction.data})
     
     if (!specification) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении характеристики`)
     }
     
@@ -137,7 +134,6 @@ class specificationService {
     await specification.addValue(value.item, {through: {selfGranted: false}})
     
     if (!specification) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении значения характеристике`)
     }
     
@@ -160,7 +156,6 @@ class specificationService {
     await specification.removeValue(value.item, {through: {selfGranted: false}})
     
     if (!specification) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при добавлении значения характеристике`)
     }
     

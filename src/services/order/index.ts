@@ -1,26 +1,41 @@
 import {ApiError} from "../../exceptions/api-error";
-import {MyTransactionType} from "../../helpers/transaction";
-import {orderModel} from "../../models";
+import {orderCustomerModel, orderModel, orderProductModel} from "../../models";
 import queriesNormalize from "../../helpers/queries-normalize";
 import {IOrder} from "../../models/order/order-model";
 import createSlice from "../../helpers/create-slice";
+import {statusService} from "../status";
+import {userService} from "../user";
 
-const t: MyTransactionType = require('../../helpers/transaction')
 
 class orderService {
   
   static create = createSlice<{
     item:IOrder,
     count:number
-  },Pick<IOrder,'comment' | 'phonenumber' | 'customerId' | 'statusId'>>(async ({data,queries, options}) => {
+  },Pick<IOrder,'comment' | 'phonenumber' | 'email' | 'customerId' | 'statusId' | 'products'>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
+    let statusId = data.statusId
     
-    const order = await orderModel.create(data, {transaction: transaction.data})
+    if(!data.statusId) {
+      const {item} = await statusService.get({data:{value:'Сформирован'},options:{transaction}})
+      statusId = item.id
+    }
+
+    const order = await orderModel.create({...data,statusId}, {transaction: transaction.data})
+    
+    const {item:user} = await userService.getOneById({data:{id:data.customerId},options:{transaction}})
+    
+    
+    await orderCustomerModel.create({customerId:data.customerId,orderId:order.id},{through: {selfGranted: false},ignoreDuplicates:true,transaction:transaction.data})
+
+    const list = data.products.map((product) => {
+      return {productId:product.id,orderId:order.id,count:product?.['cart-products']?.[0]?.count || 1}
+    })
+    await orderProductModel.bulkCreate(list, {through: {selfGranted: false},ignoreDuplicates:true,transaction:transaction.data})
     
     const {count} = await this.count({queries, options:{transaction}})
     
     if (!order|| !count) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при создании заказа`)
     }
     
@@ -38,7 +53,6 @@ class orderService {
     const result = await orderModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении заказа`)
     }
     
@@ -55,10 +69,12 @@ class orderService {
     
     const orders = await orderModel.findAll({
       where: {
-        ...normalizeQueries.searched
+        ...normalizeQueries.searched,
+        ...normalizeQueries.filter,
+        ...normalizeQueries.data
       },
-      raw: true,
       offset: normalizeQueries.offset,
+      include: normalizeQueries.include,
       limit: normalizeQueries.limit,
       order: normalizeQueries.order,
       transaction: transaction.data
@@ -72,7 +88,6 @@ class orderService {
       count
     }
     if (!result) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при получении заказов`)
     }
     
@@ -87,7 +102,6 @@ class orderService {
     const order = await orderModel.update(data, {where: {id: data.id}, transaction: transaction.data})
     
     if (!order) {
-      await t.rollback(transaction.data)
       throw ApiError.BadRequest(`Ошибка при обновлении заказа`)
     }
     
@@ -98,7 +112,7 @@ class orderService {
   
   static destroy = createSlice<{
     count:number
-  },Pick<IOrder, 'id'>>(async ({data,queries, options}) => {
+  },Partial<Pick<IOrder, 'id'>>>(async ({data,queries, options}) => {
     const transaction = options?.transaction
     
     const order = await orderModel.findOne({

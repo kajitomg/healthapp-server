@@ -1,33 +1,128 @@
-import {Op} from "sequelize"
+import {col, fn, Op} from "sequelize"
 import {DBService} from "../services/db"
+import {
+  cartModel,
+  cartProductModel,
+  categoryModel,
+  documentModel,
+  imageModel,
+  levelModel, likeProductModel,
+  productModel, productSpecificationModel,
+  specificationModel, statusModel,
+  typeModel, userModel
+} from "../models";
+
+export enum DBModels {
+  'category' = categoryModel,
+  'type' = typeModel,
+  'specification' = specificationModel,
+  'product' = productModel,
+  'image' = imageModel,
+  'document' = documentModel,
+  'level' = levelModel,
+  'status' = statusModel,
+  'cart-product' = cartProductModel,
+  'like-product' = likeProductModel,
+  'product-specification' = productSpecificationModel,
+  'cart' = cartModel,
+}
+
+export const filterConditions = {
+  price: Op.between,
+  brand: Op.or,
+  count: Op.gte,
+}
 
 export default function queriesNormalize(queries) {
   const sequelize = DBService.postgres.sequelize
+  const include = []
   
-  const offset = queries.page ? queries?.page * queries?.limit - queries?.limit: undefined
-  const limit = queries.limit ? queries?.limit : undefined
-  const order = queries?.sort ? Object.entries(queries?.sort) : []
+  const offset = queries?.page ? queries?.page * queries?.limit - queries?.limit: undefined
+  const limit = queries?.limit ? queries?.limit : undefined
+
+  const order = queries?.sort ?
+      (Object.entries(JSON.parse(queries?.sort))[0][0] === 'price' ? [[
+        fn(
+          'COALESCE',
+          col('discount'), // Первый аргумент - discount
+          col('price'),    // Второй аргумент - price
+          ...(Object.entries(JSON.parse(queries?.sort))[0][1] === 'DESC' ? [0] :[])
+        ),
+        Object.entries(JSON.parse(queries?.sort))[0][1]
+      ]] : JSON.parse(queries?.sort)?.[0] ? [JSON.parse(queries?.sort)] :[])
+  : []
   const searched = {}
-  
-  if (!queries?.search) {
-    return {searched, offset, limit, order}
+  const data = {}
+  const filter = {}
+
+  if (!queries?.search && !queries?.data && !queries?.include && !queries?.filter) {
+    return {searched, data, filter, offset, limit, order, include}
+  }
+
+  if(queries?.data){
+    const dataKeys = Object.keys(JSON.parse(queries?.data))
+    dataKeys.map(key => {
+      data[key] = JSON.parse(queries?.data)[key]
+    })
   }
   
-  const searchKeys = Object.keys(queries?.search)
-  
-  searchKeys.map(key => {
-    searched[key] = {[Op.like]: `%${queries?.search[key]}%`}
-    if (key === 'id') {
-      searched[key] = {
-        [Op.or]: [
-          sequelize.where(
-            sequelize.cast(sequelize.col('user.id'), 'varchar'),
-            {[Op.like]: `%${queries?.search[key]}%`},
-          ),
+  if(queries?.filter){
+    const filterObj = JSON.parse(queries?.filter)
+    const filterKeys = Object.keys(filterObj)
+    filterKeys.map(key => {
+      if(key === 'price'){
+        filter[Op.or] = [
+          {
+            discount: {
+              [filterConditions[key]]: filterObj[key]
+            }
+          },
+          {
+            [Op.and]: [
+              {discount:null},
+              {[key]: {
+                [filterConditions[key]]: filterObj[key]
+              }}
+            ]
+            
+          },
         ]
+        return
       }
-    }
-  })
+      filter[key] = {[filterConditions[key]]:filterObj[key]}
+    })
+  }
   
-  return {searched, offset, limit, order}
+  if(queries?.include){
+    const includeKeys =  Object.keys(queries.include)
+    includeKeys.map((includeKey) => {
+      const where = queries?.where?.[includeKey]
+      const order = queries?.sort && JSON.parse(queries?.sort)?.[includeKey]
+      
+      include.push({
+        model:DBModels[includeKey],
+        ...(queries.include[includeKey] && {as:queries.include[includeKey]}),
+        ...(where && {where}),
+        ...(order && {order})
+      })
+    })
+  }
+  if(queries?.search){
+    const searchKeys = Object.keys(queries?.search)
+    searchKeys.map(key => {
+      searched[key] = {[Op.like]: `%${queries?.search[key]}%`}
+      if (key === 'id') {
+        searched[key] = {
+          [Op.or]: [
+            sequelize.where(
+              sequelize.cast(sequelize.col('user.id'), 'varchar'),
+              {[Op.like]: `%${queries?.search[key]}%`},
+            ),
+          ]
+        }
+      }
+    })
+  }
+  
+  return {searched, data, offset, limit, order, include , filter}
 }
