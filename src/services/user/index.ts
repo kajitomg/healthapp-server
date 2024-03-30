@@ -1,20 +1,17 @@
 import {userDTO} from "../dto/user";
-import {IMailAuth} from "../../models/user/mail-auth-model";
+import {IMailAuth, mailAuthModel} from "../../models/user/mail-auth-model";
 import {ApiError} from "../../exceptions/api-error";
 import queriesNormalize from "../../helpers/queries-normalize";
-import {IUser} from "../../models/user/user-model";
+import {IUser, userModel} from "../../models/user/user-model";
 import createSlice from "../../helpers/create-slice";
 import mailService from "../mail";
-
-const bcrypt = require('bcrypt')
+import bcrypt from 'bcrypt'
 import {authDataService}  from '../auth-data';
 import {tokenService} from '../token';
 import {roleService} from '../role';
 import {cartService} from "../cart";
 import {likeService} from "../like";
-const {DTOService} = require('../dto');
-const {mailAuthModel} = require('../../models');
-const {userModel} = require('../../models');
+import {DTOService} from '../dto'
 
 class userService {
   
@@ -37,18 +34,18 @@ class userService {
   },Partial<Pick<IUser,'name'|'password'|'email'|'roleId'>>>(async ({data,options,queries}) => {//HEAD
     const transaction = options?.transaction
 
-    const candidate = await userModel.findOne({where: {email:data.email}, transaction: transaction.data})
+    const candidate = await userModel.findOne({where: {email:data?.email}, transaction: transaction?.data})
     if (candidate) {
-      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data.email} уже существует`)
+      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data?.email} уже существует`)
     }
     
-    const hashedPassword = await bcrypt.hash(data.password, 5)
-    let user = await userModel.create({email:data.email, password: hashedPassword, name:data.name}, {transaction: transaction.data})
+    const hashedPassword = await bcrypt.hash(data?.password, 5)
+    let user = await userModel.create({email:data?.email, password: hashedPassword, name:data?.name}, {transaction: transaction?.data})
     if (!user) {
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
     
-    const userDTO = await this.setRole({data:{id:user.id, roleId:data.roleId}, options:{transaction}})
+    const userDTO = await this.setRole({data:{id:user.id, roleId:data?.roleId}, options:{transaction}})
     
     await cartService.create({data:{userId:userDTO.item.id},options:{transaction}})
     await likeService.create({data:{userId:userDTO.item.id},options:{transaction}})
@@ -73,9 +70,9 @@ class userService {
     item: Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>
   },Pick<IUser, 'email' | 'password'>>( async ({data, options}) => {
     const transaction = options?.transaction
-    const user = await userModel.findOne({where: {email:data.email}, transaction: transaction.data})
+    const user = await userModel.findOne({where: {email:data?.email}, transaction: transaction?.data})
     if (!user) {
-      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data.email} не найден`)
+      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data?.email} не найден`)
     }
     const role = await roleService.getOneById({data:{id:user.roleId},options:{transaction}})
     if (+role.level > 300) {
@@ -92,11 +89,11 @@ class userService {
   },Pick<IUser, 'email' | 'password'>>(async ({data, options}) => {
     const transaction = options?.transaction
 
-    const user = await userModel.findOne({where: {email:data.email}, transaction: transaction.data})
+    const user = await userModel.findOne({where: {email:data?.email}, transaction: transaction?.data})
     if (!user) {
-      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data.email} не найден`)
+      throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data?.email} не найден`)
     }
-    const isPassEquals = await bcrypt.compare(data.password, user.password)
+    const isPassEquals = await bcrypt.compare(data?.password, user.password)
     if (!isPassEquals) {
       throw ApiError.BadRequest(`Неверный пароль`)
     }
@@ -111,7 +108,7 @@ class userService {
     }
   })
   
-  static logout = createSlice<string,{refreshToken: string}>(async ({data, options}) => {
+  static logout = createSlice<number,{refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
 
     const token = await tokenService.removeToken({data,options:{transaction}})
@@ -133,7 +130,7 @@ class userService {
     if (!user) {
       throw ApiError.BadRequest(`Ошибка при поиске пользователя`)
     }
-    console.log(data,user)
+
     if (data.phonenumber) user.phonenumber = data.phonenumber
     if (data.name) user.name = data.name
     
@@ -307,9 +304,7 @@ class userService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
-      transaction: transaction.data,
-      order: normalizeQueries.order
+      transaction: transaction.data
     })
     
     return {

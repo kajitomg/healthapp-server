@@ -1,11 +1,9 @@
 import {ApiError} from "../../exceptions/api-error";
-import {IToken} from "../../models/user/token-model";
+import {IToken, tokenModel} from "../../models/user/token-model";
 import {userDTO} from "../dto/user";
 import createSlice from "../../helpers/create-slice";
-
 require('dotenv').config()
-const jwt = require('jsonwebtoken')
-const {tokenModel} = require('../../models');
+import jwt from 'jsonwebtoken'
 
 class tokenService {
   static create = createSlice<IToken,{userId: number, refreshToken: string}>(async ({data, options}) => {
@@ -73,7 +71,7 @@ class tokenService {
     
   })
   
-  static removeToken = createSlice<string,{refreshToken: string}>(async ({data, options}) => {
+  static removeToken = createSlice<number,{refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const token = await tokenModel.destroy({where: {refresh: data.refreshToken}, transaction: transaction.data})
@@ -83,7 +81,7 @@ class tokenService {
     return token
   })
   
-  static getToken = createSlice<string,{refreshToken: string}>(async ({data, options}) => {
+  static getToken = createSlice<IToken,{refreshToken: string}>(async ({data, options}) => {
     const transaction = options?.transaction
 
     const token = await tokenModel.findOne({where: {refresh: data.refreshToken}, transaction: transaction.data})

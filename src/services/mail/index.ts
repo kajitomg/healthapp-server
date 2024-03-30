@@ -1,12 +1,9 @@
 import createSlice from "../../helpers/create-slice";
-
 require('dotenv').config()
 import {ApiError} from "../../exceptions/api-error";
-import {IMailAuth} from "../../models/user/mail-auth-model";
-
-const uuid = require('uuid')
-const {mailAuthModel} = require('../../models');
-const nodemailer = require('nodemailer')
+import {IMailAuth, mailAuthModel} from "../../models/user/mail-auth-model";
+import uuid from 'uuid'
+import nodemailer from 'nodemailer'
 
 class mailService {
   public transporter

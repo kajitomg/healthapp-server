@@ -1,16 +1,14 @@
 import {FileloadService} from "../services/fileloader";
 import {documentController} from "../controllers/document-controller";
-
-const accessMiddleWare = require('../middlewares/access-middleware')
-const checkReferer = require('../middlewares/check-referer-middleware')
-const authMiddleWare = require('../middlewares/auth-middleware')
-const Router = require('express');
-const router = new Router();
+import {Router} from 'express';
+import authMiddleWare from '../middlewares/auth-middleware'
+import accessMiddleWare from '../middlewares/access-middleware'
+const router = Router();
 
 router.post('', accessMiddleWare(200), FileloadService.upload('documents').single('document'), documentController.create) // Создание документа
 router.get('', accessMiddleWare(200), documentController.get) // Получение документов
 router.put('', accessMiddleWare(200), documentController.update) // Обновление документа
 router.delete('', accessMiddleWare(200), documentController.destroy) // Удаление документа
 
-module.exports = router
-export {}
+
+export default router

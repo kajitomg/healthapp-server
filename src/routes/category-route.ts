@@ -1,9 +1,8 @@
 import {categoryController} from "../controllers/category-controller";
-
-const accessMiddleWare = require('../middlewares/access-middleware')
-const authMiddleWare = require('../middlewares/auth-middleware')
-const Router = require('express');
-const router = new Router();
+import {Router} from 'express';
+import authMiddleWare from '../middlewares/auth-middleware'
+import accessMiddleWare from '../middlewares/access-middleware'
+const router = Router();
 
 router.post('', accessMiddleWare(200), categoryController.create) // Создание категории
 router.get('', categoryController.gets) // Получение категорий
@@ -15,5 +14,5 @@ router.get('/:id', categoryController.get) // Создание категори�
 router.post('/children', accessMiddleWare(200), categoryController.addChildren) // Добавление категории
 
 
-module.exports = router
-export {}
+
+export default router

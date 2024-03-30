@@ -2,7 +2,7 @@ import {ApiError} from "../exceptions/api-error";
 
 require('dotenv').config()
 
-module.exports = (req, res, next) => {
+export default (req, res, next) => {
   try {
     const allowedReferers = [process.env.API_URL];
     const referer = req.get('referer');

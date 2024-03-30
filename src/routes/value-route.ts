@@ -1,15 +1,13 @@
 import {valueController} from "../controllers/value-controller";
-
-const accessMiddleWare = require('../middlewares/access-middleware')
-const checkReferer = require('../middlewares/check-referer-middleware')
-const authMiddleWare = require('../middlewares/auth-middleware')
-const Router = require('express');
-const router = new Router();
+import {Router} from 'express';
+import authMiddleWare from '../middlewares/auth-middleware'
+import accessMiddleWare from '../middlewares/access-middleware'
+const router = Router();
 
 router.post('/', accessMiddleWare(200), valueController.create) // Создание значения
 router.get('/', accessMiddleWare(200), valueController.gets) // Получение значений
 router.put('', accessMiddleWare(200), valueController.update) // Изменение значения
 router.delete('', accessMiddleWare(200), valueController.destroy) // Удаление значения
 
-module.exports = router
-export {}
+
+export default router

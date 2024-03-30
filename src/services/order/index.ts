@@ -1,10 +1,11 @@
 import {ApiError} from "../../exceptions/api-error";
-import {orderCustomerModel, orderModel, orderProductModel} from "../../models";
 import queriesNormalize from "../../helpers/queries-normalize";
-import {IOrder} from "../../models/order/order-model";
+import {IOrder, orderModel} from "../../models/order/order-model";
 import createSlice from "../../helpers/create-slice";
 import {statusService} from "../status";
 import {userService} from "../user";
+import {orderCustomerModel} from "../../models/order/order-customer-model";
+import {orderProductModel} from "../../models/order/order-product-model";
 
 
 class orderService {
@@ -31,7 +32,7 @@ class orderService {
     const list = data.products.map((product) => {
       return {productId:product.id,orderId:order.id,count:product?.['cart-products']?.[0]?.count || 1}
     })
-    await orderProductModel.bulkCreate(list, {through: {selfGranted: false},ignoreDuplicates:true,transaction:transaction.data})
+    await orderProductModel.bulkCreate(list, {ignoreDuplicates:true,transaction:transaction.data})
     
     const {count} = await this.count({queries, options:{transaction}})
     
@@ -47,7 +48,7 @@ class orderService {
   
   static get = createSlice<{
     item:IOrder
-  },IOrder>(async ({data, options}) => {
+  },Omit<IOrder, 'products'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
     const result = await orderModel.findOne({where: data, transaction: transaction.data})
@@ -56,7 +57,9 @@ class orderService {
       throw ApiError.BadRequest(`Ошибка при получении заказа`)
     }
     
-    return result
+    return {
+      item:result
+    }
     
   })
   
@@ -99,13 +102,16 @@ class orderService {
   },IOrder>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const order = await orderModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    await orderModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    const order = await orderModel.findOne({where: {id: data.id}, transaction: transaction.data})
     
     if (!order) {
       throw ApiError.BadRequest(`Ошибка при обновлении заказа`)
     }
     
-    return order
+    return {
+      item:order
+    }
     
   })
   
@@ -154,9 +160,7 @@ class orderService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
       transaction: transaction.data,
-      order: normalizeQueries.order
     })
     
     return {

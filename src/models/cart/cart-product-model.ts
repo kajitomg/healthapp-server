@@ -1,18 +1,18 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
 
 const sequelize = DBService.postgres.sequelize
 
 interface ICartProduct extends Model<InferAttributes<ICartProduct>, InferCreationAttributes<ICartProduct>> {
   id: CreationOptional<number>;
-  cartId: CreationOptional<number>;
-  productId: CreationOptional<number>;
+  cartId?: CreationOptional<number>;
+  productId?: CreationOptional<number>;
   count:number
 }
 
-const cartProductModel: ICartProduct = sequelize.define('cart-product', {
+const cartProductModel = sequelize.define<ICartProduct>('cart-product', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   count:{type:DataTypes.INTEGER}
 })

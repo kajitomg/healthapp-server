@@ -1,9 +1,9 @@
 import {ApiError} from "../../exceptions/api-error";
-import {categoryModel, imageModel} from "../../models";
-import {ICategory} from "../../models/product/category-model";
+import {categoryModel, ICategory} from "../../models/product/category-model";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
-import {levelModel} from "../../models/product/level-model";
+import {imageModel} from "../../models/image/image-model";
+import {categoryChildrenModel} from "../../models/product/category-children-model";
 
 
 class categoryService {
@@ -60,7 +60,7 @@ class categoryService {
     const categories = await categoryModel.findAndCountAll({
       where: {
         ...normalizeQueries.searched,
-        ...(queries?.levelId && {levelId:queries?.levelId}),
+        ...(queries?.levelId && {levelId:+queries?.levelId}),
       },
       include: normalizeQueries.include,
       distinct:true,
@@ -103,7 +103,7 @@ class categoryService {
     count:number
   }, { parentId:number,childrenId:number }>(async ({data,queries,options}) => {
     const transaction = options?.transaction
-    console.log(data)
+
     const categoryParent = await categoryModel.findOne({where: {id:data.parentId}, transaction: transaction.data})
     const categoryChildren = await categoryModel.findOne({where: {id:data.childrenId}, transaction: transaction.data})
     
@@ -111,7 +111,7 @@ class categoryService {
       throw ApiError.BadRequest(`Уровень children выше или равно parent`)
     }
 
-    await categoryParent.addChildren(categoryChildren,{through: {selfGranted: false}})
+    await categoryChildrenModel.create({childrenId:categoryChildren.id,parentId:categoryParent.id})
     
     const {count} = await this.count({queries, options:{transaction}})
     
@@ -163,9 +163,7 @@ class categoryService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
       transaction: transaction.data,
-      order: normalizeQueries.order
     })
     
     return {

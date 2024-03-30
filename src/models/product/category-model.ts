@@ -1,7 +1,8 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
+import {levelModel} from "./level-model";
 
 const sequelize = DBService.postgres.sequelize
 
@@ -11,9 +12,16 @@ interface ICategory extends Model<InferAttributes<ICategory>, InferCreationAttri
   levelId: CreationOptional<number>;
 }
 
-const categoryModel: ICategory = sequelize.define('category', {
+const categoryModel = sequelize.define<ICategory>('category', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   name: {type: DataTypes.STRING},
+  levelId: {
+    type: DataTypes.INTEGER,
+    references: {
+      model: levelModel,
+      key: 'id'
+    }
+  }
 })
 
 export {categoryModel, ICategory}

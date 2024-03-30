@@ -1,15 +1,5 @@
 import {ApiError} from "../../exceptions/api-error";
-import {
-  cartModel,
-  cartProductModel,
-  categoryModel,
-  documentModel,
-  imageModel,
-  productModel,
-  specificationModel,
-  typeModel,
-} from "../../models";
-import {IProduct} from "../../models/product/product-model";
+import {IProduct, productModel} from "../../models/product/product-model";
 import {imageService} from "../image";
 import {documentService} from "../document";
 import queriesNormalize from "../../helpers/queries-normalize";
@@ -17,7 +7,17 @@ import {categoryService} from "../category";
 import {specificationService} from "../specification";
 import {valueService} from "../value";
 import createSlice from "../../helpers/create-slice";
-import {col, fn, literal, Op} from "sequelize";
+import {col, fn, Op} from "sequelize";
+import {imageModel} from "../../models/image/image-model";
+import {documentModel} from "../../models/document/document-model";
+import {specificationModel} from "../../models/product/specification-model";
+import {categoryModel} from "../../models/product/category-model";
+import {typeModel} from "../../models/product/type-model";
+import {productImageModel} from "../../models/product/product-image-model";
+import {productDocumentModel} from "../../models/product/product-document-model";
+import {productCategoryModel} from "../../models/product/product-category-model";
+import {productSpecificationModel} from "../../models/product/product-specification-model";
+import {specificationValueModel} from "../../models/product/specification-value-model";
 
 
 class productService {
@@ -180,9 +180,9 @@ class productService {
     })
     
     await imageService.destroys({data:product.dataValues.images,options:{transaction}})
-    await documentService.destroys({data:product.dataValues.documents,options:{transaction}})
-    await specificationService.destroys({data:product.dataValues.specifications.filter((specification) => !specification.basic),options:{transaction}})
-    await valueService.destroys({data:product.dataValues.values.filter((value) => !value.basic),options:{transaction}})
+    await documentService.destroys({data:{items:product.dataValues.documents},options:{transaction}})
+    await specificationService.destroys({data:{items:product.dataValues.specifications.filter((specification) => !specification.basic)},options:{transaction}})
+    await valueService.destroys({data:{items:product.dataValues.values.filter((value) => !value.basic)},options:{transaction}})
 
     await product.destroy({transaction: transaction.data})
     
@@ -270,7 +270,7 @@ class productService {
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     const image = await imageService.get({data:{id: data.imageId},options:{transaction}})
     
-    await product.addImage(image.item, {through: {selfGranted: false}})
+    await productImageModel.create({productId:product.id,imageId:image.item.id},{transaction: transaction.data})
     
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
@@ -291,7 +291,7 @@ class productService {
     
     const image = await imageService.get({data:{id: data.imageId},options:{transaction}})
     
-    await product.removeImage(image.item, {transaction: transaction.data})
+    await productImageModel.destroy({where:{productId:product.id,imageId:image.item.id}, transaction: transaction.data})
     
     await imageService.destroy({data:{id: image.item.dataValues.id}, options:{transaction}})
     
@@ -313,7 +313,7 @@ class productService {
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     const document = await documentService.get({data:{id: data.documentId}, options:{transaction}})
     
-    await product.addDocument(document.item, {through: {selfGranted: false}})
+    await productDocumentModel.create({productId:product.id,documentId:document.item.id},{transaction: transaction.data})
     
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
@@ -334,7 +334,7 @@ class productService {
     
     const document = await documentService.get({data:{id: data.documentId}, options:{transaction}})
     
-    await product.removeDocument(document.item, {transaction: transaction.data})
+    await productDocumentModel.destroy({where:{productId:product.id,documentId:document.item.id},transaction: transaction.data})
     
     await documentService.destroy({data:{id: document.item.dataValues.id}, options:{transaction}})
     
@@ -352,11 +352,11 @@ class productService {
     categoryId: number
   }>(async ({data, options}) => {
     const transaction = options?.transaction
-    console.log(data)
+
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     const category = await categoryService.get({data:{id: data.categoryId}, options:{transaction}})
     
-    await product.addCategory(category.item, {through: {selfGranted: false}})
+    await productCategoryModel.create({productId:product.id,categoryId:category.item.id},{transaction: transaction.data})
     
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
@@ -379,7 +379,7 @@ class productService {
     
     const category = await categoryService.get({data:{id: data.categoryId}, options:{transaction}})
     
-    await product.removeCategory(category.item, {transaction: transaction.data})
+    await productCategoryModel.destroy({where:{productId:product.id,categoryId:category.item.id},transaction: transaction.data})
     
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
@@ -401,7 +401,8 @@ class productService {
     const product = await productModel.findOne({where: {id: data.productId}, transaction: transaction.data})
     const specification = await specificationService.get({data:{id: data.specificationId}, options:{transaction}})
     const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
-    await product.addSpecification(specification.item, { through: { value:value.item.dataValues.value }})
+    
+    await productSpecificationModel.create({productId:product.id,specificationId:specification.item.id},{transaction: transaction.data})
     
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
@@ -426,8 +427,9 @@ class productService {
     const specification = await specificationService.get({data:{id: data.specificationId}, options:{transaction}})
     const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
     
-    await product.removeSpecification(specification.item, {transaction: transaction.data})
-    await product.removeType(value.item, {transaction: transaction.data})
+    await productSpecificationModel.destroy({where:{productId:product.id,specificationId:specification.item.id},transaction: transaction.data})
+    await specificationValueModel.destroy({where:{specificationId:specification.item.id,valueId:value.item.id},transaction: transaction.data})
+    
     
     const result = await this.get({data:{id:data.productId},options:{transaction}})
     
@@ -446,9 +448,7 @@ class productService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
       transaction: transaction.data,
-      order: normalizeQueries.order
     })
     
     return {

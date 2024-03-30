@@ -1,7 +1,6 @@
 import {ApiError} from "../../exceptions/api-error";
 import queriesNormalize from "../../helpers/queries-normalize";
-import {IStatus} from "../../models/order/status-model";
-import {statusModel} from "../../models";
+import {IStatus, statusModel} from "../../models/order/status-model";
 import createSlice from "../../helpers/create-slice";
 
 
@@ -80,7 +79,8 @@ class statusService {
   },Pick<IStatus, 'id' | 'value'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const status = await statusModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    await statusModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    const status = await statusModel.findOne({where: {id: data.id}, transaction: transaction.data})
     
     if (!status) {
       throw ApiError.BadRequest(`Ошибка при обновлении статуса`)
@@ -136,9 +136,7 @@ class statusService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
-      transaction: transaction.data,
-      order: normalizeQueries.order
+      transaction: transaction.data
     })
     
     return {

@@ -1,30 +1,30 @@
-const {orderCustomerModel} =  require('./order/order-customer-model');
-const {likeProductModel} = require('./like/like-product-model');
-const {cartProductModel} = require('./cart/cart-product-model');
-const {categoryChildrenModel} = require('./product/category-children-model');
-const {likeModel} = require('./like/like-model');
-const {cartModel} = require('./cart/cart-model');
-const {levelModel} = require('./product/level-model');
-const {userModel} = require('./user/user-model')
-const {authDataModel} = require('./user/auth-data-model')
-const {roleModel} = require('./user/role-model')
-const {mailAuthModel} = require('./user/mail-auth-model')
-const {tokenModel} = require('./user/token-model')
-const {categoryModel} = require('./product/category-model')
-const {productCategoryModel} = require('./product/product-category-model')
-const {specificationModel} = require('./product/specification-model')
-const {specificationValueModel} = require('./product/specification-value-model')
-const {typeModel} = require('./product/type-model')
-const {valueModel} = require('./product/value-model')
-const {productImageModel} = require('./product/product-image-model');
-const {productDocumentModel} = require('./product/product-document-model');
-const {productModel} = require('./product/product-model');
-const {productSpecificationModel} = require('./product/product-specification-model');
-const {imageModel} = require('./image/image-model');
-const {documentModel} = require('./document/document-model');
-const {orderModel} = require('./order/order-model');
-const {orderProductModel} = require('./order/order-product-model');
-const {statusModel} = require('./order/status-model');
+import {orderCustomerModel} from './order/order-customer-model';
+import {likeProductModel} from './like/like-product-model';
+import {cartProductModel} from './cart/cart-product-model';
+import {categoryChildrenModel} from './product/category-children-model';
+import {likeModel} from './like/like-model';
+import {cartModel} from './cart/cart-model';
+import {levelModel} from './product/level-model';
+import {userModel} from './user/user-model'
+import {authDataModel} from './user/auth-data-model'
+import {roleModel} from './user/role-model'
+import {mailAuthModel} from './user/mail-auth-model'
+import {tokenModel} from './user/token-model'
+import {categoryModel} from './product/category-model'
+import {productCategoryModel} from './product/product-category-model'
+import {specificationModel} from './product/specification-model'
+import {specificationValueModel} from './product/specification-value-model'
+import {typeModel} from './product/type-model'
+import {valueModel} from './product/value-model'
+import {productImageModel} from './product/product-image-model';
+import {productDocumentModel} from './product/product-document-model';
+import {productModel} from './product/product-model';
+import {productSpecificationModel} from './product/product-specification-model';
+import {imageModel} from './image/image-model';
+import {documentModel} from './document/document-model';
+import {orderModel} from './order/order-model';
+import {orderProductModel} from './order/order-product-model';
+import {statusModel} from './order/status-model';
 
 
 //user
@@ -109,7 +109,7 @@ orderModel.belongsToMany(userModel,{through:orderCustomerModel})
 statusModel.hasOne(orderModel)
 orderModel.belongsTo(statusModel)
 
-export {
+export default {
   userModel,
   authDataModel,
   roleModel,

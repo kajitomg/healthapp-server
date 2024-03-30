@@ -1,6 +1,5 @@
 import {ApiError} from "../../exceptions/api-error";
-import {imageModel} from "../../models";
-import {IImage} from "../../models/image/image-model";
+import {IImage, imageModel} from "../../models/image/image-model";
 import createSlice from "../../helpers/create-slice";
 import destroyFile from "../../helpers/destroy-file";
 
@@ -67,7 +66,7 @@ class imageService {
       throw ApiError.BadRequest(`Ошибка при удалении изображения`)
     }
     
-    destroyFile([destroyData])
+    destroyFile([{path:destroyData.path}])
     
     return 1
   })

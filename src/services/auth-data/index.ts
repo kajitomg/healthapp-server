@@ -1,9 +1,11 @@
 import mailService from "../mail";
-import {authDataModel} from "../../models";
 import {userService} from "../user";
-import {IAuthData} from "../../models/user/auth-data-model";
+import {authDataModel, IAuthData} from "../../models/user/auth-data-model";
 import {ApiError} from "../../exceptions/api-error";
 import createSlice from "../../helpers/create-slice";
+
+
+
 
 
 class authDataService {
@@ -22,7 +24,9 @@ class authDataService {
     if (!authdata) {
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
     }
-    return authdata
+    return {
+      item:authdata
+    }
     
   })
   
@@ -45,12 +49,12 @@ class authDataService {
   static destroy = createSlice<number,{userId: number}>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    let authdata = await authDataModel.findOne({where: data, transaction: transaction.data})
+    const authdata = await authDataModel.findOne({where: data, transaction: transaction.data})
     
     const mailAuth = await mailService.destroy({data:{id:authdata.mailAuthId}, options:{transaction}})
-    authdata = await authDataModel.destroy({where: data, transaction: transaction.data})
+    const isAuthdata = await authDataModel.destroy({where: data, transaction: transaction.data})
     
-    if (!authdata && !mailAuth) {
+    if (!isAuthdata && !mailAuth) {
       throw ApiError.BadRequest(`Ошибка при удалении пользователя`)
     }
     

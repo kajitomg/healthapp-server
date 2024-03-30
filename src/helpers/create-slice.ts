@@ -1,5 +1,4 @@
 import {MyTransactionType, TransactionSuccessCreateType} from "./transaction";
-import {ApiError} from "../exceptions/api-error";
 
 const t: MyTransactionType = require('./transaction')
 

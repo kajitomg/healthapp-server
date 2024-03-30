@@ -1,7 +1,5 @@
 require('dotenv').config()
-const {Sequelize} = require('sequelize');
-const CLS = require('cls-hooked');
-const cls = CLS.createNamespace('sequelize-transaction');
+import {Sequelize} from 'sequelize';
 
 const DB = new Sequelize(
   process.env.DB_PG_NAME,
@@ -10,13 +8,12 @@ const DB = new Sequelize(
   {
     dialect: 'postgres',
     host: process.env.DB_PG_HOST,
-    port: +process.env.DB_PG_PORT
-  },
-  cls
+    port: +(process.env.DB_PG_PORT || 5000),
+  }
 )
 
 class Postgresql {
-  static sequelize = DB
+  static sequelize  = DB
   
   static async start() {
     await DB.authenticate()

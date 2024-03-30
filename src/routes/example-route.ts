@@ -1,10 +1,8 @@
 
-
-const accessMiddleWare = require('../middlewares/access-middleware')
-const checkReferer = require('../middlewares/check-referer-middleware')
-const authMiddleWare = require('../middlewares/auth-middleware')
-const Router = require('express');
-const router = new Router();
+import {Router} from 'express';
+import authMiddleWare from '../middlewares/auth-middleware'
+import accessMiddleWare from '../middlewares/access-middleware'
+const router = Router();
 
 router.get('', accessMiddleWare(200), ) // Получить примеры //Query: ids:string[]
 router.get('/:id', accessMiddleWare(200), ) // Получить пример
@@ -17,5 +15,5 @@ router.patch('/:id', accessMiddleWare(200), ) // Обновить часть п�
 router.delete('/:id', accessMiddleWare(200), ) // Удалить пример
 router.delete('', accessMiddleWare(200), ) // Удалить примеры //Query: ids:string[] //UPD bulkDelete
 
-module.exports = router
-export {}
+
+export default router

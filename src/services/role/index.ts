@@ -1,5 +1,4 @@
-import {roleModel} from "../../models";
-import {IRole} from "../../models/user/role-model";
+import {IRole, roleModel} from "../../models/user/role-model";
 import {ApiError} from "../../exceptions/api-error";
 import createSlice from "../../helpers/create-slice";
 

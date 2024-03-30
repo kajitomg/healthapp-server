@@ -1,7 +1,7 @@
 import {ApiError} from "../exceptions/api-error";
 import {tokenService} from "../services/token";
 
-module.exports = (req, res, next) => {
+export default (req, res, next) => {
   try {
     let accessToken = req.headers.authorization
     if (accessToken.split(' ')[1])

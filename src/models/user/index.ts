@@ -1,8 +1,8 @@
-const {userModel} = require('./user-model')
-const {authDataModel} = require('./auth-data-model')
-const {roleModel} = require('./role-model')
-const {mailAuthModel} = require('./mail-auth-model')
-const {tokenModel} = require('./token-model')
+import {userModel} from './user-model'
+import {authDataModel} from './auth-data-model'
+import {roleModel} from './role-model'
+import {mailAuthModel} from './mail-auth-model'
+import {tokenModel} from './token-model'
 
 userModel.hasOne(authDataModel)
 authDataModel.belongsTo(userModel)

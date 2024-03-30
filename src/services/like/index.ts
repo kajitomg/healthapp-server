@@ -2,8 +2,8 @@ import createSlice from "../../helpers/create-slice";
 import {ApiError} from "../../exceptions/api-error";
 import {IProduct} from "../../models/product/product-model";
 import queriesNormalize from "../../helpers/queries-normalize";
-import {imageModel, likeModel, likeProductModel, productModel} from "../../models";
-import {ILike} from "../../models/like/like-model";
+import {ILike, likeModel} from "../../models/like/like-model";
+import {likeProductModel} from "../../models/like/like-product-model";
 
 
 
@@ -63,7 +63,7 @@ class likeService {
       return {productId:product.id,likeId:item.id}
     })
     
-    await likeProductModel.bulkCreate(list, {through: {selfGranted: false},ignoreDuplicates:true,transaction:transaction.data})
+    await likeProductModel.bulkCreate(list, {ignoreDuplicates:true,transaction:transaction.data})
     
     const {item:result} = await this.get({data:{id:data.id},options:{transaction: transaction}})
     
@@ -87,7 +87,7 @@ class likeService {
       return product.id
     })
     
-    await likeProductModel.destroy({where: {productId:list,likeId:data.id},through: {selfGranted: false},transaction:transaction.data})
+    await likeProductModel.destroy({where: {productId:list,likeId:data.id},transaction:transaction.data})
     
     if (!item) {
       throw ApiError.BadRequest(`Ошибка при удалении продуктов из понравившегося`)

@@ -1,7 +1,7 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
 
 const sequelize = DBService.postgres.sequelize
 
@@ -11,7 +11,7 @@ interface IMailAuth extends Model<InferAttributes<IMailAuth>, InferCreationAttri
   confirmation: boolean
 }
 
-const mailAuthModel: IMailAuth = sequelize.define('mail-auth', {
+const mailAuthModel = sequelize.define<IMailAuth>('mail-auth', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   url: {type: DataTypes.STRING},
   confirmation: {type: DataTypes.BOOLEAN, defaultValue: false},

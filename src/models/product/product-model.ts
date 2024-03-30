@@ -4,8 +4,16 @@ import {ILikeProduct} from "../like/like-product-model";
 import {ICart} from "../cart/cart-model";
 import {ILike} from "../like/like-model";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
+import {imageService} from "../../services/image";
+import {documentService} from "../../services/document";
+import {specificationService} from "../../services/specification";
+import {valueService} from "../../services/value";
+import {IImage} from "../image/image-model";
+import {IDocument} from "../document/document-model";
+import {ISpecification} from "./specification-model";
+import {IValue} from "./value-model";
 
 const sequelize = DBService.postgres.sequelize
 
@@ -18,13 +26,17 @@ interface IProduct extends Model<InferAttributes<IProduct>, InferCreationAttribu
   description?: string,
   imageId?: CreationOptional<number>,
   count?: number,
-  'cart-product':ICartProduct,
-  'like-product':ILikeProduct,
-  carts:ICart,
-  likes:ILike
+  'cart-product'?:ICartProduct,
+  'like-product'?:ILikeProduct,
+  carts?:ICart[],
+  likes?:ILike[],
+  images?:IImage[],
+  documents?:IDocument[],
+  specifications?:ISpecification[],
+  values?:IValue[],
 }
 
-const productModel: IProduct = sequelize.define('product', {
+const productModel = sequelize.define<IProduct>('product', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   name: {type: DataTypes.STRING},
   article: {type: DataTypes.STRING},

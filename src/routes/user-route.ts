@@ -1,8 +1,8 @@
-const {userController} = require('../controllers/user-controller');
-const Router = require('express');
-const router = new Router();
-const authMiddleWare = require('../middlewares/auth-middleware')
-const accessMiddleWare = require('../middlewares/access-middleware')
+import {userController} from '../controllers/user-controller';
+import {Router} from 'express';
+import authMiddleWare from '../middlewares/auth-middleware'
+import accessMiddleWare from '../middlewares/access-middleware'
+const router = Router();
 
 router.post('', userController.create) // Создание аккаунта
 router.get('', userController.gets) // Получение аккаунтов
@@ -21,5 +21,4 @@ router.get('/refresh', userController.refresh) // обновление токе�
 router.get('/activate/:link', userController.activate) // Активация аккаунта
 
 
-module.exports = router
-export {}
+export default router

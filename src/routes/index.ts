@@ -1,20 +1,20 @@
-const Router = require('express');
-const router = new Router();
+import {Router} from 'express';
+const router = Router();
 
-const userRouter = require('./user-route')
-const roleRouter = require('./role-route')
-const productRouter = require('./product-route')
-const specificationRouter = require('./specification-route')
-const categoryRouter = require('./category-route')
-const imageRouter = require('./image-route')
-const documentRouter = require('./document-route')
-const valueRouter = require('./value-route')
-const typeRouter = require('./type-route')
-const orderRouter = require('./order-route')
-const statusRouter = require('./status-route')
-const levelRouter = require('./level-route')
-const cartRouter = require('./cart-route')
-const likeRouter = require('./like-route')
+import userRouter from './user-route'
+import roleRouter from './role-route'
+import productRouter from './product-route'
+import specificationRouter from './specification-route'
+import categoryRouter from './category-route'
+import imageRouter from './image-route'
+import documentRouter from './document-route'
+import valueRouter from './value-route'
+import typeRouter from './type-route'
+import orderRouter from './order-route'
+import statusRouter from './status-route'
+import levelRouter from './level-route'
+import cartRouter from './cart-route'
+import likeRouter from './like-route'
 
 router.use('/users', userRouter)
 router.use('/roles', roleRouter)
@@ -31,5 +31,4 @@ router.use('/levels', levelRouter)
 router.use('/carts', cartRouter)
 router.use('/likes', likeRouter)
 
-module.exports = router
-export {}
+export default router

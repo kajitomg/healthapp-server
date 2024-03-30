@@ -1,10 +1,9 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
 
 const sequelize = DBService.postgres.sequelize
-
 
 interface IUser extends Model<InferAttributes<IUser>, InferCreationAttributes<IUser>> {
   id: CreationOptional<number>,
@@ -12,10 +11,10 @@ interface IUser extends Model<InferAttributes<IUser>, InferCreationAttributes<IU
   email: string,
   password: string,
   phonenumber: string,
-  roleId: number,
+  roleId?: number,
 }
 
-const userModel: IUser = sequelize.define('user', {
+const userModel = sequelize.define<IUser>('user', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   name: {type: DataTypes.STRING},
   email: {

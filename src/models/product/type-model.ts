@@ -1,7 +1,7 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
 
 const sequelize = DBService.postgres.sequelize
 
@@ -11,7 +11,7 @@ interface IType extends Model<InferAttributes<IType>, InferCreationAttributes<IT
   basic?: boolean,
 }
 
-const typeModel: IType = sequelize.define('type', {
+const typeModel = sequelize.define<IType>('type', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   value: {type: DataTypes.STRING, unique: true},
   basic: {type: DataTypes.BOOLEAN, defaultValue: false},

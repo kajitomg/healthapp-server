@@ -5,7 +5,7 @@ import {MyTransactionType} from "../helpers/transaction";
 
 const t: MyTransactionType = require('../helpers/transaction')
 
-module.exports = (level) => {
+export default (level) => {
   return async (req, res, next) => {
     const transaction = await t.create()
     try {

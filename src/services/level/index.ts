@@ -1,8 +1,7 @@
 import createSlice from "../../helpers/create-slice";
 import {ApiError} from "../../exceptions/api-error";
 import queriesNormalize from "../../helpers/queries-normalize";
-import {levelModel} from "../../models";
-import {ILevel} from "../../models/product/level-model";
+import {ILevel, levelModel} from "../../models/product/level-model";
 
 
 class levelService {
@@ -137,9 +136,7 @@ class levelService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
       transaction: transaction.data,
-      order: normalizeQueries.order
     })
     
     return {

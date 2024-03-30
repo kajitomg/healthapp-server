@@ -1,7 +1,7 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
 
 const sequelize = DBService.postgres.sequelize
 
@@ -10,7 +10,7 @@ interface IStatus extends Model<InferAttributes<IStatus>, InferCreationAttribute
   value:string
 }
 
-const statusModel: IStatus = sequelize.define('status', {
+const statusModel = sequelize.define<IStatus>('status', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   value: {type: DataTypes.STRING, unique:true},
 })

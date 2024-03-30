@@ -5,7 +5,7 @@ import uploadPath from "../../helpers/upload-path";
 import {Request} from "express";
 import {ApiError} from "../../exceptions/api-error";
 
-const uuid = require('uuid')
+import uuid from 'uuid'
 
 
 class FileloadService {

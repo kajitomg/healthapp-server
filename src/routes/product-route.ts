@@ -1,9 +1,8 @@
 const {productController} = require('../controllers/product-controller');
-const accessMiddleWare = require('../middlewares/access-middleware')
-const checkReferer = require('../middlewares/check-referer-middleware')
-const authMiddleWare = require('../middlewares/auth-middleware')
-const Router = require('express');
-const router = new Router();
+import {Router} from 'express';
+import authMiddleWare from '../middlewares/auth-middleware'
+import accessMiddleWare from '../middlewares/access-middleware'
+const router = Router();
 
 router.post('', accessMiddleWare(200), productController.create) // Создание продукта
 router.get('', productController.gets) // Получение продуктов
@@ -28,5 +27,5 @@ router.post('/specification', accessMiddleWare(200), productController.addSpecif
 router.get('/specifications', productController.specifications) // Получение характеристики
 router.delete('/specification', accessMiddleWare(200), productController.destroySpecification) // Удаление характеристики
 
-module.exports = router
-export {}
+
+export default router

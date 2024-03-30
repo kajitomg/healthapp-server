@@ -1,6 +1,6 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
+import {DBService} from '../../services/db';
 
 const sequelize = DBService.postgres.sequelize
 
@@ -8,11 +8,11 @@ const sequelize = DBService.postgres.sequelize
 
 interface IToken extends Model<InferAttributes<IToken>, InferCreationAttributes<IToken>> {
   id: CreationOptional<number>;
-  refresh: DataTypes.TextDataType,
-  userId: CreationOptional<number>;
+  refresh: string,
+  userId?: CreationOptional<number>;
 }
 
-const tokenModel: IToken = sequelize.define('token', {
+const tokenModel = sequelize.define<IToken>('token', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   refresh: {type: DataTypes.STRING(1000)},
 })

@@ -1,12 +1,9 @@
 import createSlice from "../../helpers/create-slice";
-import {ICart} from "../../models/cart/cart-model";
-const {cartModel, cartProductModel} =  require("../../models");
+import {cartModel, ICart} from "../../models/cart/cart-model";
 import {ApiError} from "../../exceptions/api-error";
 import {IProduct} from "../../models/product/product-model";
 import queriesNormalize from "../../helpers/queries-normalize";
-
-
-
+import {cartProductModel} from "../../models/cart/cart-product-model";
 
 class cartService {
   
@@ -64,7 +61,7 @@ class cartService {
     })
     
     
-    await cartProductModel.bulkCreate(list, {through: {selfGranted: false},ignoreDuplicates:true,transaction:transaction.data})
+    await cartProductModel.bulkCreate(list, {ignoreDuplicates:true,transaction:transaction.data})
     
     const {item:result} = await this.get({data:{id:data.id},options:{transaction: transaction}})
     
@@ -88,7 +85,7 @@ class cartService {
       return product.id
     })
     
-    await cartProductModel.destroy({where: {productId:list,cartId:data.id},through: {selfGranted: false},transaction:transaction.data})
+    await cartProductModel.destroy({where: {productId:list,cartId:data.id},transaction:transaction.data})
     
     if (!item) {
       throw ApiError.BadRequest(`Ошибка при удалении продуктов из корзины`)
@@ -106,7 +103,7 @@ class cartService {
 
     const {item} = await this.get({data:{id:data.id},options:{transaction: transaction}})
     
-    await cartProductModel.increment('count', {where:{productId:data.product.id,cartId:item.id},through: {selfGranted: false},transaction:transaction.data})
+    await cartProductModel.increment('count', {where:{productId:data.product.id,cartId:item.id},transaction:transaction.data})
     
     if (!item) {
       throw ApiError.BadRequest(`Ошибка при увеличении количества продуктов в корзине`)
@@ -124,7 +121,7 @@ class cartService {
 
     const {item} = await this.get({data:{id:data.id},options:{transaction: transaction}})
   
-    await cartProductModel.decrement('count', {where:{productId:data.product.id,cartId:item.id},through: {selfGranted: false},transaction:transaction.data})
+    await cartProductModel.decrement('count', {where:{productId:data.product.id,cartId:item.id},transaction:transaction.data})
     
     const cartProduct = await cartProductModel.findOne({where:{productId:data.product.id,cartId:item.id},transaction:transaction.data})
 

@@ -1,6 +1,5 @@
 import {ApiError} from "../../exceptions/api-error";
-import {documentModel} from "../../models";
-import {IDocument} from "../../models/document/document-model";
+import {documentModel, IDocument} from "../../models/document/document-model";
 import destroyFile from "../../helpers/destroy-file";
 import createSlice from "../../helpers/create-slice";
 
@@ -63,14 +62,11 @@ class documentService {
     const result = await documentModel.findOne({where: data, transaction: transaction.data})
     const destroyData = result.dataValues
     
-    const document = await result.destroy({transaction: transaction.data})
+    await result.destroy({transaction: transaction.data})
     
-    if (!document) {
-      throw ApiError.BadRequest(`Ошибка при удалении документа`)
-    }
-    destroyFile([destroyData])
+    destroyFile([{path:destroyData.path}])
     
-    return document
+    return 1
   })
   
   static destroys = createSlice<number,{items:IDocument[]}>(async ({data, options}) => {

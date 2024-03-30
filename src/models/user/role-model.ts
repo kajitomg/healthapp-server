@@ -1,7 +1,7 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
 
 const sequelize = DBService.postgres.sequelize
 
@@ -11,7 +11,7 @@ interface IRole extends Model<InferAttributes<IRole>, InferCreationAttributes<IR
   level: string
 }
 
-const roleModel: IRole = sequelize.define('role', {
+const roleModel = sequelize.define<IRole>('role', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   name: {type: DataTypes.STRING, allowNull: false},
   level: {type: DataTypes.STRING, allowNull: false}

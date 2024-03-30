@@ -1,6 +1,5 @@
 import {ApiError} from "../../exceptions/api-error";
-import {typeModel} from "../../models";
-import {IType} from "../../models/product/type-model";
+import {IType, typeModel} from "../../models/product/type-model";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
 
@@ -33,7 +32,7 @@ class typeService {
   },Pick<IType, 'id' | 'value'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const result = await typeModel.findAll({where: data, transaction: transaction.data})
+    const result = await typeModel.findOne({where: data, transaction: transaction.data})
     
     if (!result) {
       throw ApiError.BadRequest(`Ошибка при получении типа`)
@@ -124,9 +123,7 @@ class typeService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
-      transaction: transaction.data,
-      order: normalizeQueries.order
+      transaction: transaction.data
     })
     
     return {

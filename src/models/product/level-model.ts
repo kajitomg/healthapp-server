@@ -1,7 +1,7 @@
 import {CreationOptional, InferAttributes, InferCreationAttributes, Model} from "sequelize";
 
-const {DBService} = require('../../services/db');
-const {DataTypes} = require('sequelize')
+import {DBService} from '../../services/db';
+import {DataTypes} from 'sequelize'
 
 const sequelize = DBService.postgres.sequelize
 
@@ -10,7 +10,7 @@ interface ILevel extends Model<InferAttributes<ILevel>, InferCreationAttributes<
   name: string,
 }
 
-const levelModel: ILevel = sequelize.define('level', {
+const levelModel = sequelize.define<ILevel>('level', {
   id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
   name: {type: DataTypes.STRING},
 })

@@ -1,6 +1,5 @@
 import {ApiError} from "../../exceptions/api-error";
-import {valueModel} from "../../models";
-import {IValue} from "../../models/product/value-model";
+import {IValue, valueModel} from "../../models/product/value-model";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
 
@@ -80,7 +79,8 @@ class valueService {
   },Pick<IValue, 'id' | 'value'>>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const result = await valueModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    await valueModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    const result = await valueModel.findOne({where: {id: data.id}, transaction: transaction.data})
     
     if (!result) {
       throw ApiError.BadRequest(`Ошибка при обновлении значения`)
@@ -131,9 +131,7 @@ class valueService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
       transaction: transaction.data,
-      order: normalizeQueries.order
     })
     
     return {

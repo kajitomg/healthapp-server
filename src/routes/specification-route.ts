@@ -1,10 +1,8 @@
 import {specificationController} from "../controllers/specification-controller";
-import {IRouter} from "express";
-
-const accessMiddleWare = require('../middlewares/access-middleware')
-const authMiddleWare = require('../middlewares/auth-middleware')
-const Router = require('express');
-const router: IRouter = new Router();
+import {Router} from 'express';
+import authMiddleWare from '../middlewares/auth-middleware'
+import accessMiddleWare from '../middlewares/access-middleware'
+const router = Router();
 
 router.post('', accessMiddleWare(200), specificationController.create) // Создание характеристики
 router.get('', authMiddleWare, specificationController.gets) // Получение характеристик
@@ -15,5 +13,5 @@ router.put('/value', accessMiddleWare(200), specificationController.addValue) //
 router.delete('/value', accessMiddleWare(200), specificationController.destroyValue) // Удаление значения характеристики
 
 
-module.exports = router
-export {}
+
+export default router

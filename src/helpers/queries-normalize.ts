@@ -1,30 +1,20 @@
 import {col, fn, Op} from "sequelize"
 import {DBService} from "../services/db"
-import {
-  cartModel,
-  cartProductModel,
-  categoryModel,
-  documentModel,
-  imageModel,
-  levelModel, likeProductModel,
-  productModel, productSpecificationModel,
-  specificationModel, statusModel,
-  typeModel, userModel
-} from "../models";
+import models from "../models";
 
 export enum DBModels {
-  'category' = categoryModel,
-  'type' = typeModel,
-  'specification' = specificationModel,
-  'product' = productModel,
-  'image' = imageModel,
-  'document' = documentModel,
-  'level' = levelModel,
-  'status' = statusModel,
-  'cart-product' = cartProductModel,
-  'like-product' = likeProductModel,
-  'product-specification' = productSpecificationModel,
-  'cart' = cartModel,
+  'category' = 'categoryModel',
+  'type' = 'typeModel',
+  'specification' = 'specificationModel',
+  'product' = 'productModel',
+  'image' = 'imageModel',
+  'document' = 'documentModel',
+  'level' = 'levelModel',
+  'status' = 'statusModel',
+  'cart-product' = 'cartProductModel',
+  'like-product' = 'likeProductModel',
+  'product-specification' = 'productSpecificationModel',
+  'cart' = 'cartModel',
 }
 
 export const filterConditions = {
@@ -100,7 +90,7 @@ export default function queriesNormalize(queries) {
       const order = queries?.sort && JSON.parse(queries?.sort)?.[includeKey]
       
       include.push({
-        model:DBModels[includeKey],
+        model:models[DBModels[includeKey]],
         ...(queries.include[includeKey] && {as:queries.include[includeKey]}),
         ...(where && {where}),
         ...(order && {order})

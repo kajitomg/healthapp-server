@@ -1,16 +1,11 @@
-import * as http2 from "http2";
-
 require('dotenv').config()
-const express = require('express')
-const cors = require('cors')
-const {DBService} = require('./services/db');
-const cookieParser = require('cookie-parser')
-const {models} = require('./models')
-const router = require('./routes')
-const errorMiddleware = require('./middlewares/error-middleware')
-const accessMiddleWare = require('./middlewares/access-middleware')
-const authMiddleWare = require('./middlewares/auth-middleware')
-const bodyParser = require('body-parser')
+import express from 'express'
+import cors from 'cors'
+import {DBService} from './services/db';
+import cookieParser from 'cookie-parser'
+import router from './routes'
+import errorMiddleware from './middlewares/error-middleware'
+import bodyParser from 'body-parser'
 
 const app = express()
 
@@ -27,7 +22,7 @@ app.use(cookieParser())
 app.use('/api', router)
 app.use(errorMiddleware)
 
-const PORT = +process.env.PORT || 5000
+const PORT = +(process.env.PORT || 5000)
 
 const run = () => {
 	try {
@@ -40,4 +35,3 @@ const run = () => {
 	}
 }
 run()
-export { }

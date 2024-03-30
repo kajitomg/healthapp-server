@@ -1,14 +1,12 @@
 import {ApiError} from "../../exceptions/api-error";
-import {
-  categoryModel,
-  specificationModel,
-  typeModel,
-  valueModel
-} from "../../models";
-import {ISpecification} from "../../models/product/specification-model";
+import {ISpecification, specificationModel} from "../../models/product/specification-model";
 import {valueService} from "../value";
 import queriesNormalize from "../../helpers/queries-normalize";
 import createSlice from "../../helpers/create-slice";
+import {typeModel} from "../../models/product/type-model";
+import {categoryModel} from "../../models/product/category-model";
+import {valueModel} from "../../models/product/value-model";
+import {specificationValueModel} from "../../models/product/specification-value-model";
 
 
 class specificationService {
@@ -108,7 +106,8 @@ class specificationService {
       delete data.categoryId
     }
     
-    const specification = await specificationModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    await specificationModel.update(data, {where: {id: data.id}, transaction: transaction.data})
+    const specification = await specificationModel.findOne({where: {id: data.id}, transaction: transaction.data})
     
     if (!specification) {
       throw ApiError.BadRequest(`Ошибка при обновлении характеристики`)
@@ -128,10 +127,10 @@ class specificationService {
   }>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const specification = specificationModel.findOne({where: {id: data.specificationId}, transaction: transaction.data})
+    const specification = await specificationModel.findOne({where: {id: data.specificationId}, transaction: transaction.data})
     const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
     
-    await specification.addValue(value.item, {through: {selfGranted: false}})
+    await specificationValueModel.create({valueId:value.item.id,specificationId:specification.dataValues.id},{transaction: transaction.data})
     
     if (!specification) {
       throw ApiError.BadRequest(`Ошибка при добавлении значения характеристике`)
@@ -150,10 +149,11 @@ class specificationService {
   }>(async ({data, options}) => {
     const transaction = options?.transaction
     
-    const specification = specificationModel.findOne({where: {id: data.specificationId}, transaction: transaction.data})
+    const specification = await specificationModel.findOne({where: {id: data.specificationId}, transaction: transaction.data})
     const value = await valueService.get({data:{id: data.valueId}, options:{transaction}})
     
-    await specification.removeValue(value.item, {through: {selfGranted: false}})
+    
+    await specificationValueModel.destroy({where:{valueId:value.item.id,specificationId:specification.dataValues.id}, transaction: transaction.data})
     
     if (!specification) {
       throw ApiError.BadRequest(`Ошибка при добавлении значения характеристике`)
@@ -174,7 +174,7 @@ class specificationService {
       transaction: transaction.data
     })
     
-    await valueService.destroys({data:specification.dataValues.values.filter((value) => !value.basic), options:{transaction}})
+    await valueService.destroys({data:{items:specification.dataValues.values.filter((value) => !value.basic)}, options:{transaction}})
     
     await specification.destroy({transaction: transaction.data})
     
@@ -208,9 +208,7 @@ class specificationService {
       where: {
         ...normalizeQueries.searched
       },
-      raw: true,
-      transaction: transaction.data,
-      order: normalizeQueries.order
+      transaction: transaction.data
     })
     
     return {
