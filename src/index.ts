@@ -12,7 +12,7 @@ const app = express()
 
 app.use(cors({
 	credentials: true,
-	origin: process.env.CLIENT_PROD_URL,
+	origin: process.env.CLIENT_URL,
 }))
 app.use(express.static('uploads'));
 app.use(bodyParser())

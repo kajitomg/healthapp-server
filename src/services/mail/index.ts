@@ -2,7 +2,7 @@ import createSlice from "../../helpers/create-slice";
 require('dotenv').config()
 import {ApiError} from "../../exceptions/api-error";
 import {IMailAuth, mailAuthModel} from "../../models/user/mail-auth-model";
-import uuid from 'uuid'
+import {v4} from 'uuid'
 import nodemailer from 'nodemailer'
 
 class mailService {
@@ -25,7 +25,7 @@ class mailService {
   }>(async ({options}) => {
     const transaction = options?.transaction
     
-    const url = uuid.v4()
+    const url = v4()
     const mailauth = await mailAuthModel.create({url}, {transaction: transaction.data})
     if (!mailauth) {
       throw ApiError.BadRequest(`Ошибка при создании пользователя`)
@@ -39,7 +39,7 @@ class mailService {
   },Pick<IMailAuth, 'id'>>(async ({data,options}) => {
     const transaction = options?.transaction
     
-    const url = uuid.v4()
+    const url = v4()
     const mailauth = await mailAuthModel.findOne({where:{id:data.id},transaction: transaction.data})
     if (!mailauth) {
       throw ApiError.BadRequest(`Ошибка при поиске авторизации почты`)

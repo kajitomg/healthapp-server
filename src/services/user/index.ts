@@ -88,7 +88,7 @@ class userService {
     item: Pick<IUser, 'email' | 'id' | 'name' | 'roleId'>
   },Pick<IUser, 'email' | 'password'>>(async ({data, options}) => {
     const transaction = options?.transaction
-
+    console.log(data)
     const user = await userModel.findOne({where: {email:data?.email}, transaction: transaction?.data})
     if (!user) {
       throw ApiError.BadRequest(`Пользователь с почтовым адресом ${data?.email} не найден`)
@@ -98,9 +98,13 @@ class userService {
       throw ApiError.BadRequest(`Неверный пароль`)
     }
     const userDTO = DTOService.user(user)
+    console.log('da')
     
     const tokens = await tokenService.generateToken({data:userDTO})
+    console.log(tokens)
+    
     await tokenService.saveToken({data:{userId:userDTO.id, refreshToken:tokens.refreshToken},options:{transaction}})
+    console.log('da')
     
     return {
       ...tokens,
@@ -231,7 +235,7 @@ class userService {
       throw ApiError.BadRequest(`Пользователя с данным идентификатором не существует`)
     }
     
-    const role = await roleService.getOneById({data:{id:data.roleId || 4},options:{transaction}})
+    const role = await roleService.getOneById({data:{id:data.roleId || 2},options:{transaction}})
     
     userData.roleId = role.id
     const user = await userData.save({transaction: transaction.data})
