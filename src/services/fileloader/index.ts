@@ -5,7 +5,7 @@ import uploadPath from "../../helpers/upload-path";
 import {Request} from "express";
 import {ApiError} from "../../exceptions/api-error";
 
-import uuid from 'uuid'
+import {v4} from 'uuid'
 
 
 class FileloadService {
@@ -14,7 +14,7 @@ class FileloadService {
   static storage(dir: string) {
     return multer.diskStorage({
       destination: (req: Request, file, cb: Function) => {
-        this.fileName = uuid.v4()
+        this.fileName = v4()
         const uploadsPath = this.generatePath(dir);
         const expansion = file.originalname.split('.')[file.originalname.split('.').length - 1]
         if (!fs.existsSync(uploadsPath)) {

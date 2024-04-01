@@ -42,7 +42,7 @@ const productModel = sequelize.define<IProduct>('product', {
   article: {type: DataTypes.STRING},
   price: {type: DataTypes.INTEGER},
   discount: {type: DataTypes.INTEGER},
-  description: {type: DataTypes.STRING},
+  description: {type: DataTypes.STRING(500)},
   count: {type:DataTypes.INTEGER}
 })
 

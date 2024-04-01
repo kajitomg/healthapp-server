@@ -67,7 +67,7 @@ class productService {
   }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
-    
+    console.log(queries,normalizeQueries)
     const products = await productModel.findAndCountAll({
       where: {
         ...normalizeQueries.searched,
@@ -82,7 +82,7 @@ class productService {
       order: normalizeQueries.order,
       transaction: transaction.data
     })
-    
+
     const result = {
       list:products.rows,
       count:products.count

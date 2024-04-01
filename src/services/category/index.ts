@@ -16,6 +16,7 @@ class categoryService {
     if(!data.levelId){
       data.levelId = 1
     }
+    console.log(data)
     const result = await categoryModel.create(data, {transaction: transaction.data})
     
     const {count} = await this.count({queries, options:{transaction}})
@@ -56,7 +57,7 @@ class categoryService {
   }>(async ({queries, options}) => {
     const transaction = options?.transaction
     const normalizeQueries = queriesNormalize(queries)
-    
+    console.log(normalizeQueries.searched, 'category')
     const categories = await categoryModel.findAndCountAll({
       where: {
         ...normalizeQueries.searched,

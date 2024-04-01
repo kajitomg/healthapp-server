@@ -23,6 +23,11 @@ export const filterConditions = {
   count: Op.gte,
 }
 
+export const searchConditions = {
+  and: Op.and,
+  or: Op.or,
+}
+
 export default function queriesNormalize(queries) {
   const sequelize = DBService.postgres.sequelize
   const include = []
@@ -98,10 +103,28 @@ export default function queriesNormalize(queries) {
     })
   }
   if(queries?.search){
-    const searchKeys = Object.keys(queries?.search)
+    const search = typeof queries?.search === 'string' ? JSON.parse(queries?.search) : queries?.search
+    console.log(search)
+    const searchKeys = Object.keys(search)
+    const and = []
+    const or = []
     searchKeys.map(key => {
-      searched[key] = {[Op.like]: `%${queries?.search[key]}%`}
-      if (key === 'id') {
+      if(key === 'or'){
+        const searchKeys = Object.keys(queries?.search[key])
+        const search = queries?.search[key]
+        searchKeys.map(key => {
+          or.push({[key]:{[Op.like]: `%${search[key]}%`}})
+        })
+      }else if(key === 'and'){
+        const searchKeys = Object.keys(queries?.search[key])
+        const search = queries?.search[key]
+        searchKeys.map(key => {
+          and.push({[key]:{[Op.like]: `%${search[key]}%`}})
+        })
+      } else {
+        searched[key] = {[Op.like]: `%${search[key]}%`}
+      }
+      /*if (key === 'id') {
         searched[key] = {
           [Op.or]: [
             sequelize.where(
@@ -110,8 +133,14 @@ export default function queriesNormalize(queries) {
             ),
           ]
         }
-      }
+      }*/
     })
+    if(and.length){
+      searched[searchConditions['and']] = and
+    }
+    if(or.length){
+      searched[searchConditions['or']] = or
+    }
   }
   
   return {searched, data, offset, limit, order, include , filter}
